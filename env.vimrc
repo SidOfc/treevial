@@ -23,3 +23,6 @@ nnoremap <silent> <space>gp :echo map(
 
 " source current directory
 set rtp+=.
+set splitright splitbelow
+
+nnoremap <C-w> :bd<Cr>
