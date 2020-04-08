@@ -1,21 +1,46 @@
+if exists('g:loaded_treevial')
+  finish
+endif
+
+let g:loaded_treevial = 1
+let s:save_cpo        = &cpo
+let s:is_nvim         = has('nvim')
+let s:is_vim          = !s:is_nvim
+set cpo&vim
+
+function! treevial#root() abort
+  let root_target = get(argv(), 0, getcwd())
+  let no_lnum     = line2byte('$') ==# -1
+
+  if isdirectory(root_target) && no_lnum && !&insertmode && &modifiable
+    call treevial#open(root_target)
+  endif
+endfunction
+
 function! treevial#open(cwd) abort
-  let s:cwd      = a:cwd
-  let s:tree     = get(s:, 'data', s:make_tree(s:cwd))
+  let s:cwd  = a:cwd
+  let s:root = get(s:, 'root', s:tree_entry(s:cwd, fnamemodify(s:cwd, ':h'), -1))
 
   enew
   file treevial
 
   silent! setlocal
+        \ filetype=treevial
         \ bufhidden=hide
+        \ nobuflisted
+        \ buftype=nowrite
         \ noruler
+        \ laststatus=0
         \ shiftwidth=2
         \ nonumber
+        \ nomodifiable
+        \ readonly
         \ norelativenumber
         \ nospell
         \ noswapfile
         \ signcolumn=no
-        \ filetype=treevial
 
+  call s:root.open()
   call treevial#draw()
 
   noremap <silent><buffer> <S-Cr>
@@ -26,11 +51,13 @@ endfunction
 function! treevial#draw() abort
   let saved_view = winsaveview()
   let entries    = map(
-        \ deepcopy(s:convert_tree_to_list(s:tree)),
+        \ deepcopy(s:convert_tree_to_list(s:root.children())),
         \ '[v:val, v:key + 1]')
 
-  setlocal modifiable
+  setlocal modifiable noreadonly
   silent! normal! ggdG
+
+  if s:is_vim | echo '' | endif
 
   call append(0, fnamemodify(s:cwd, ':t') . '/')
 
@@ -44,26 +71,27 @@ function! treevial#draw() abort
   endfor
 
   silent! normal! "_ddgg
+
+  if s:is_vim | echo '' | endif
+
   call winrestview(saved_view)
-  setlocal nomodified nomodifiable
+  setlocal nomodified nomodifiable readonly
 endfunction
 
 function! treevial#entry_under_cursor() abort
   let cursor_line_index = line('.') - 2
 
   return cursor_line_index >? -1
-        \ ? get(s:convert_tree_to_list(s:tree), cursor_line_index, {})
-        \ : {}
+        \ ? get(s:convert_tree_to_list(s:root.children()), cursor_line_index, 0)
+        \ : 0
 endfunction
 
 function! treevial#navigate(...) abort
-  let opts  = get(a:, 1, {})
-  let entry = treevial#entry_under_cursor()
+  let settings = get(a:, 1, {})
+  let entry    = treevial#entry_under_cursor()
 
-  if has_key(entry, 'name')
-    echom 'navigate:' entry.path
-    call entry.update({'is_open': entry.is_dir && !entry.is_open})
-    call entry.children()
+  if type(entry) ==# type({})
+    call entry.toggle({'recursive': get(settings, 'shift', 0)})
     call treevial#draw()
   endif
 endfunction
@@ -105,34 +133,70 @@ function! s:tree_entry(path, root, depth) abort
         \ 'is_open': 0
         \ }
 
-  echom 'entry:' entry.path
-
-  return extend(entry, {
+  call extend(entry, {
         \ 'update': function('extend', [entry]),
-        \ 'children': function('s:children', entry)
+        \ 'open': function('s:entry_open', entry),
+        \ 'close': function('s:entry_close', entry),
+        \ 'toggle': function('s:entry_toggle', entry),
+        \ 'children': function('s:entry_children', entry)
         \ })
+
+  return entry
 endfunction
 
-function! s:children() dict
-  if !has_key(self, '_children')
+function! s:entry_toggle(...) dict
+  let settings  = get(a:, 1, {})
+  return self.is_open ? self.close(settings) : self.open(settings)
+endfunction
+
+function! s:entry_close(...) dict
+  let settings  = get(a:, 1, {})
+  let recursive = get(settings, 'recursive', 0)
+
+  call self.update({'is_open': 0})
+
+  if recursive && has_key(self, '_children')
+    for child_entry in self.children()
+      call child_entry.close(settings)
+    endfor
+  endif
+endfunction
+
+function! s:entry_open(...) dict
+  call self.update({'is_open': self.is_dir})
+
+  for child_entry in self.children()
+    let result_entry = child_entry
+
+    while len(result_entry.children()) ==# 1
+      let result_entry = result_entry.children()[0]
+    endwhile
+
+    if child_entry.path !=# result_entry.path
+      call child_entry.update({
+            \ 'name': substitute(result_entry.path, self.path, '', ''),
+            \ 'path': result_entry.path,
+            \ 'is_dir': result_entry.is_dir,
+            \ '_children': []
+            \ })
+    endif
+  endfor
+endfunction
+
+function! s:entry_children() dict
+  if self.is_dir && !has_key(self, '_children')
     call extend(self, {'_children': s:make_tree(self.path, self.depth + 1)})
   endif
 
-  return self._children
-endfunction
-
-function! s:root() abort
-  let root_target = get(argv(), 0, getcwd())
-  let no_lnum     = line2byte('$') ==# -1
-
-  if isdirectory(root_target) && no_lnum && !&insertmode && &modifiable
-    call treevial#open(root_target)
-  endif
+  return get(self, '_children', [])
 endfunction
 
 if has('vim_starting')
   augroup treevial
     autocmd!
-    autocmd VimEnter * nested call s:root()
+    autocmd VimEnter * nested call treevial#root()
   augroup END
 endif
+
+let &cpo = s:save_cpo
+unlet s:save_cpo
