@@ -1,0 +1,9 @@
+*treevial.txt*                                            a plain directory tree
+*treevial*
+
+`Author:  Sidney Liebrand <sidneyliebrand@gmail.com>`
+`Version: 0.1.0`
+
+==============================================================================
+
+vim:tw=78:sw=2:ft=help:norl:
