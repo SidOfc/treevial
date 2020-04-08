@@ -1,6 +1,6 @@
 function! treevial#open(cwd) abort
   let s:cwd      = a:cwd
-  let s:tree     = get(s:, 'data', s:make_tree(s:cwd, 3))
+  let s:tree     = get(s:, 'data', s:make_tree(s:cwd))
   let s:defaults = {
         \ 'close_children': 0
         \ }
@@ -64,13 +64,12 @@ function! treevial#navigate(...) abort
   let entry   = treevial#entry_under_cursor()
 
   if has_key(entry, 'name')
-    echom entry.path
+    echom 'navigate:' entry.path
+    call entry.update({'is_open': entry.is_dir && !entry.is_open})
 
-    call entry.update({
-          \ 'is_open': !entry.is_open,
-          \ 'children': len(entry.children)
-          \ ? entry.children
-          \ : s:make_tree(entry.path, entry.depth, entry.depth + 1)})
+    if entry.is_open && len(entry.children) ==# 0
+      call entry.update({'children': s:make_tree(entry.path, entry.depth + 1)})
+    endif
 
     if entry.is_dir && !entry.is_open && options.close_children
       call entry.update_children({'is_open': 0})
@@ -94,34 +93,32 @@ function! s:convert_tree_to_list(tree) abort
   return result
 endfunction
 
-function! s:make_tree(dir, maxdepth, ...) abort
+function! s:make_tree(root, ...) abort
   let depth = get(a:, 1, 0)
-  let dir   = substitute(a:dir, '/\+$', '', '')
+  let root  = substitute(a:root, '/\+$', '', '')
 
   return sort(sort(map(filter(
-        \ glob(dir . '/*',  0, 1) +
-        \ glob(dir . '/.*', 0, 1),
+        \ glob(root . '/*',  0, 1) +
+        \ glob(root . '/.*', 0, 1),
         \ {_,  p  -> p !~# '/\.\.\?$'}),
-        \ {_,  p  -> s:tree_entry(p, dir, depth, a:maxdepth)}),
+        \ {_,  p  -> s:tree_entry(p, root, depth)}),
         \ {x1, x2 -> x1.name >? x2.name}),
         \ {x1, x2 -> x2.is_dir - x1.is_dir})
 endfunction
 
-function! s:tree_entry(path, root, depth, maxdepth) abort
-  let identifier = substitute(a:path, a:root . '/', '', '')
-  let is_dir     = isdirectory(a:path)
-  let children   = is_dir && a:depth < a:maxdepth
-        \ ? s:make_tree(a:path, a:maxdepth, a:depth + 1)
-        \ : []
-
-  let entry = {
-        \ 'name': identifier . (is_dir ? '/' : ''),
-        \ 'path': fnamemodify(a:path, ':p'),
+function! s:tree_entry(path, root, depth) abort
+  let is_dir = isdirectory(a:path)
+  let path   = fnamemodify(a:path, ':p')
+  let entry  = {
+        \ 'name': substitute(path, a:root, '', '')[1:],
+        \ 'path': path,
         \ 'depth': a:depth,
         \ 'is_dir': is_dir,
         \ 'is_open': 0,
-        \ 'children': children,
+        \ 'children': []
         \ }
+
+  " echom 'creating entry:' entry.depth entry.name
 
   " this code enables git single-file-in-folder like
   " expansion as seem on github, needs work...
@@ -134,8 +131,6 @@ function! s:tree_entry(path, root, depth, maxdepth) abort
   " endwhile
 
   return extend(entry, {
-        \ 'name': substitute(entry.path, a:root, '', '')[1:],
-        \ 'depth': a:depth,
         \ 'update': function('extend', [entry]),
         \ 'update_children': function('s:update_children', entry)})
 endfunction
