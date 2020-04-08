@@ -1,9 +1,6 @@
 function! treevial#open(cwd) abort
   let s:cwd      = a:cwd
   let s:tree     = get(s:, 'data', s:make_tree(s:cwd))
-  let s:defaults = {
-        \ 'close_children': 0
-        \ }
 
   enew
   file treevial
@@ -22,7 +19,7 @@ function! treevial#open(cwd) abort
   call treevial#draw()
 
   noremap <silent><buffer> <S-Cr>
-        \ :call treevial#navigate({'close_children': 1})<Cr>
+        \ :call treevial#navigate({'shift': 1})<Cr>
   noremap <silent><buffer> <Cr>   :call treevial#navigate()<Cr>
 endfunction
 
@@ -37,13 +34,13 @@ function! treevial#draw() abort
 
   call append(0, fnamemodify(s:cwd, ':t') . '/')
 
-  for [branch, idx] in entries
-    let indent = repeat(' ', branch.depth * &sw)
-    let prefix = branch.is_dir
-          \ ? branch.is_open ? '- ' : '+ '
+  for [entry, idx] in entries
+    let indent = repeat(' ', entry.depth * &sw)
+    let prefix = entry.is_dir
+          \ ? entry.is_open ? '- ' : '+ '
           \ : '  '
 
-    call append(idx, indent . prefix . branch.name)
+    call append(idx, indent . prefix . entry.name)
   endfor
 
   silent! normal! "_ddgg
@@ -60,21 +57,13 @@ function! treevial#entry_under_cursor() abort
 endfunction
 
 function! treevial#navigate(...) abort
-  let options = extend(deepcopy(s:defaults), get(a:, 1, {}))
-  let entry   = treevial#entry_under_cursor()
+  let opts  = get(a:, 1, {})
+  let entry = treevial#entry_under_cursor()
 
   if has_key(entry, 'name')
     echom 'navigate:' entry.path
     call entry.update({'is_open': entry.is_dir && !entry.is_open})
-
-    if entry.is_open && len(entry.children) ==# 0
-      call entry.update({'children': s:make_tree(entry.path, entry.depth + 1)})
-    endif
-
-    if entry.is_dir && !entry.is_open && options.close_children
-      call entry.update_children({'is_open': 0})
-    endif
-
+    call entry.children()
     call treevial#draw()
   endif
 endfunction
@@ -85,11 +74,10 @@ function! s:convert_tree_to_list(tree) abort
   for entry in a:tree
     call add(result, entry)
     if entry.is_open
-      call extend(result, s:convert_tree_to_list(entry.children))
+      call extend(result, s:convert_tree_to_list(entry.children()))
     endif
   endfor
 
-  let b:current_list = result
   return result
 endfunction
 
@@ -114,36 +102,23 @@ function! s:tree_entry(path, root, depth) abort
         \ 'path': path,
         \ 'depth': a:depth,
         \ 'is_dir': is_dir,
-        \ 'is_open': 0,
-        \ 'children': []
+        \ 'is_open': 0
         \ }
 
-  " echom 'creating entry:' entry.depth entry.name
-
-  " this code enables git single-file-in-folder like
-  " expansion as seem on github, needs work...
-  " ---
-  " while len(entry.children) ==# 1
-  "   let entry = entry.children[0]
-  "   if entry.is_dir && len(entry.children) ==# 0
-  "     call entry.update({'children': s:make_tree(entry.path, 1, 0)})
-  "   endif
-  " endwhile
+  echom 'entry:' entry.path
 
   return extend(entry, {
         \ 'update': function('extend', [entry]),
-        \ 'update_children': function('s:update_children', entry)})
+        \ 'children': function('s:children', entry)
+        \ })
 endfunction
 
-function! s:update_children(props, ...) dict
-  let recursive = get(a:, 1, 1)
+function! s:children() dict
+  if !has_key(self, '_children')
+    call extend(self, {'_children': s:make_tree(self.path, self.depth + 1)})
+  endif
 
-  for child_entry in self.children
-    call child_entry.update(a:props)
-    if recursive
-      call child_entry.update_children(a:props)
-    endif
-  endfor
+  return self._children
 endfunction
 
 function! s:root() abort
