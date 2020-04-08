@@ -3,9 +3,9 @@ if exists('g:loaded_treevial')
 endif
 
 let g:loaded_treevial = 1
-let s:save_cpo        = &cpo
 let s:is_nvim         = has('nvim')
 let s:is_vim          = !s:is_nvim
+let s:save_cpo        = &cpo
 set cpo&vim
 
 function! treevial#root() abort
@@ -13,13 +13,12 @@ function! treevial#root() abort
   let no_lnum     = line2byte('$') ==# -1
 
   if isdirectory(root_target) && no_lnum && !&insertmode && &modifiable
-    call treevial#open(root_target)
+    call treevial#open(getcwd())
   endif
 endfunction
 
 function! treevial#open(cwd) abort
-  let s:cwd  = a:cwd
-  let s:root = get(s:, 'root', s:tree_entry(s:cwd, fnamemodify(s:cwd, ':h'), -1))
+  let s:root = get(s:, 'root', s:tree_entry(a:cwd, fnamemodify(a:cwd, ':h')))
 
   enew
   file treevial
@@ -40,34 +39,36 @@ function! treevial#open(cwd) abort
         \ noswapfile
         \ signcolumn=no
 
-  call s:root.open()
-  call treevial#draw()
-
   noremap <silent><buffer> <S-Cr>
         \ :call treevial#navigate({'shift': 1})<Cr>
   noremap <silent><buffer> <Cr>   :call treevial#navigate()<Cr>
+
+  call s:root.open()
+  call treevial#draw()
 endfunction
 
 function! treevial#draw() abort
-  let saved_view = winsaveview()
-  let entries    = map(
-        \ deepcopy(s:convert_tree_to_list(s:root.children())),
-        \ '[v:val, v:key + 1]')
+  let current_lnum = 0
+  let saved_view   = winsaveview()
+  let entries      = map(
+        \ deepcopy(s:tree_to_list(s:root.children())),
+        \ '[v:val[0], v:val[1], v:key]')
 
   setlocal modifiable noreadonly
   silent! normal! ggdG
 
   if s:is_vim | echo '' | endif
 
-  call append(0, fnamemodify(s:cwd, ':t') . '/')
+  call append(current_lnum, s:root.name)
 
-  for [entry, idx] in entries
-    let indent = repeat(' ', entry.depth * &sw)
-    let prefix = entry.is_dir
+  for [entry, depth, idx] in entries
+    let current_lnum += 1
+    let indent        = repeat(' ', depth * &sw)
+    let prefix        = entry.is_dir
           \ ? entry.is_open ? '- ' : '+ '
           \ : '  '
 
-    call append(idx, indent . prefix . entry.name)
+    call append(current_lnum, indent . prefix . entry.name)
   endfor
 
   silent! normal! "_ddgg
@@ -79,11 +80,16 @@ function! treevial#draw() abort
 endfunction
 
 function! treevial#entry_under_cursor() abort
-  let cursor_line_index = line('.') - 2
+  let line_index = line('.') - 2
 
-  return cursor_line_index >? -1
-        \ ? get(s:convert_tree_to_list(s:root.children()), cursor_line_index, 0)
-        \ : 0
+  if line_index <? 0
+    return 0
+  else
+    return get(
+          \ get(s:tree_to_list(s:root.children()), line_index, []),
+          \ 0,
+          \ 0)
+  endif
 endfunction
 
 function! treevial#navigate(...) abort
@@ -96,39 +102,38 @@ function! treevial#navigate(...) abort
   endif
 endfunction
 
-function! s:convert_tree_to_list(tree) abort
+function! s:tree_to_list(tree, ...) abort
+  let depth  = get(a:, 1, 0)
   let result = []
 
   for entry in a:tree
-    call add(result, entry)
+    call add(result, [entry, depth])
     if entry.is_open
-      call extend(result, s:convert_tree_to_list(entry.children()))
+      call extend(result, s:tree_to_list(entry.children(), depth + 1))
     endif
   endfor
 
   return result
 endfunction
 
-function! s:make_tree(root, ...) abort
-  let depth = get(a:, 1, 0)
+function! s:make_tree(root) abort
   let root  = substitute(a:root, '/\+$', '', '')
 
   return sort(sort(map(filter(
         \ glob(root . '/*',  0, 1) +
         \ glob(root . '/.*', 0, 1),
         \ {_,  p  -> p !~# '/\.\.\?$'}),
-        \ {_,  p  -> s:tree_entry(p, root, depth)}),
+        \ {_,  p  -> s:tree_entry(p, root)}),
         \ {x1, x2 -> x1.name >? x2.name}),
         \ {x1, x2 -> x2.is_dir - x1.is_dir})
 endfunction
 
-function! s:tree_entry(path, root, depth) abort
+function! s:tree_entry(path, root) abort
   let is_dir = isdirectory(a:path)
   let path   = fnamemodify(a:path, ':p')
   let entry  = {
         \ 'name': substitute(path, a:root, '', '')[1:],
         \ 'path': path,
-        \ 'depth': a:depth,
         \ 'is_dir': is_dir,
         \ 'is_open': 0
         \ }
@@ -185,7 +190,7 @@ endfunction
 
 function! s:entry_children() dict
   if self.is_dir && !has_key(self, '_children')
-    call extend(self, {'_children': s:make_tree(self.path, self.depth + 1)})
+    call extend(self, {'_children': s:make_tree(self.path)})
   endif
 
   return get(self, '_children', [])
