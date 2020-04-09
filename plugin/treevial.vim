@@ -3,6 +3,7 @@ if exists('g:loaded_treevial')
 endif
 
 let g:loaded_treevial = 1
+let s:util            = {}
 let s:is_nvim         = has('nvim')
 let s:is_vim          = !s:is_nvim
 let s:save_cpo        = &cpo
@@ -21,12 +22,12 @@ function! treevial#buffer(...) abort
   noautocmd edit treevial
 
   let options   = get(a:,      1,         {})
+  let refresh   = get(options, 'bang',    !exists('b:entries'))
   let cwd       = get(options, 'cwd',     getcwd())
-  let bang      = get(options, 'bang',    !exists('b:entries'))
   let b:root    = get(b:,      'root',    s:entry(cwd, fnamemodify(cwd, ':h')))
   let b:entries = get(b:,      'entries', [])
 
-  if bang
+  if refresh
     let b:root    = s:entry(cwd, fnamemodify(cwd, ':h'))
     let b:entries = []
   endif
@@ -51,8 +52,12 @@ function! treevial#buffer(...) abort
   nnoremap <silent><buffer> <C-v>  :call treevial#open({'command': 'vspl'})<Cr>
   nnoremap <silent><buffer> <C-x>  :call treevial#open({'command': 'spl'})<Cr>
 
-  call b:root.expand()
-  call treevial#render()
+  if refresh
+    call b:root.expand()
+    call treevial#render()
+  endif
+
+  let b:booted = 1
 endfunction
 
 function! treevial#entry_under_cursor() abort
@@ -84,15 +89,30 @@ function! treevial#update() abort
   let b:entries = b:root.list()
 endfunction
 
+function! treevial#winrestview(position) abort
+  let curr_winnr = winnr()
+  let windows    = filter(map(
+        \ win_findbuf(bufnr('%')),
+        \ 'win_id2win(v:val)'),
+        \ 'v:val !=# ' . curr_winnr)
+
+  for winnr in windows
+    exe winnr . 'wincmd w'
+    call winrestview(a:position)
+  endfor
+
+  exe curr_winnr . 'wincmd w'
+  call winrestview(a:position)
+endfunction
+
 function! treevial#draw() abort
   let saved_view   = winsaveview()
+  let target       = bufname('%')
   let current_lnum = 0
 
   setlocal modifiable noreadonly
-  silent! normal! ggdG
 
-  if s:is_vim | echo '' | endif
-
+  call s:util.clear_buffer()
   call append(current_lnum, b:root.name)
 
   for [data, idx] in map(copy(b:entries), '[v:val, v:key]')
@@ -106,12 +126,20 @@ function! treevial#draw() abort
     call append(current_lnum, indent . prefix . entry.name)
   endfor
 
-  silent! normal! "_ddgg
+  call s:util.clear_trailing_empty_lines_from_buffer()
+  call treevial#winrestview(saved_view)
 
-  if s:is_vim | echo '' | endif
-
-  call winrestview(saved_view)
   setlocal nomodified nomodifiable readonly
+endfunction
+
+function! s:util.clear_buffer() abort
+  exe 'normal! ggdG:\<Esc>'
+endfunction
+
+function! s:util.clear_trailing_empty_lines_from_buffer() abort
+  while empty(getline('$'))
+    exe 'normal! dd:\<Esc>'
+  endwhile
 endfunction
 
 function! s:entry(path, root) abort
@@ -155,7 +183,7 @@ function! s:entry_collapse(...) dict
 
   call self.update({'is_open': 0})
 
-  if recursive && has_key(self, '_children')
+  if self.is_dir && recursive && has_key(self, '_children')
     for child_entry in self.children()
       call child_entry.collapse(settings)
     endfor
