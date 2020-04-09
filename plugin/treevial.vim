@@ -13,14 +13,16 @@ function! treevial#vimenter() abort
   let no_lnum     = line2byte('$') ==# -1
 
   if isdirectory(root_target) && no_lnum && !&insertmode && &modifiable
-    call treevial#buffer(getcwd())
+    call treevial#buffer()
   endif
 endfunction
 
-function! treevial#buffer(cwd) abort
+function! treevial#buffer(...) abort
   edit treevial
 
-  let b:root    = s:entry(a:cwd, fnamemodify(a:cwd, ':h'))
+  let options   = get(a:, 1, {})
+  let cwd       = get(options, 'cwd', getcwd())
+  let b:root    = s:entry(cwd, fnamemodify(cwd, ':h'))
   let b:entries = []
 
   silent! setlocal
@@ -210,8 +212,9 @@ function! s:entry_list(...) dict
   return result
 endfunction
 
+if !exists(':Explore')
+  command Treevial call treevial#buffer()
 
-if has('vim_starting')
   augroup treevial
     autocmd!
     autocmd VimEnter * nested call treevial#vimenter()
