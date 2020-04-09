@@ -18,12 +18,18 @@ function! treevial#vimenter() abort
 endfunction
 
 function! treevial#buffer(...) abort
-  edit treevial
+  noautocmd edit treevial
 
-  let options   = get(a:, 1, {})
-  let cwd       = get(options, 'cwd', getcwd())
-  let b:root    = s:entry(cwd, fnamemodify(cwd, ':h'))
-  let b:entries = []
+  let options   = get(a:,      1,         {})
+  let cwd       = get(options, 'cwd',     getcwd())
+  let bang      = get(options, 'bang',    !exists('b:entries'))
+  let b:root    = get(b:,      'root',    s:entry(cwd, fnamemodify(cwd, ':h')))
+  let b:entries = get(b:,      'entries', [])
+
+  if bang
+    let b:root    = s:entry(cwd, fnamemodify(cwd, ':h'))
+    let b:entries = []
+  endif
 
   silent! setlocal
         \ filetype=treevial
@@ -212,14 +218,14 @@ function! s:entry_list(...) dict
   return result
 endfunction
 
-if !exists(':Explore')
-  command Treevial call treevial#buffer()
-
-  augroup treevial
-    autocmd!
-    autocmd VimEnter * nested call treevial#vimenter()
-  augroup END
+if !exists(':Treevial')
+  command -bang Treevial call treevial#buffer({'bang': <bang>0})
 endif
+
+augroup treevial
+  autocmd!
+  autocmd VimEnter * nested call treevial#vimenter()
+augroup END
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
