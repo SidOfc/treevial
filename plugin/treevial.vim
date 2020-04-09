@@ -30,34 +30,33 @@ function! treevial#buffer(...) abort
   if refresh
     let b:root    = s:entry(cwd, fnamemodify(cwd, ':h'))
     let b:entries = []
-  endif
 
-  silent! setlocal
-        \ filetype=treevial
-        \ bufhidden=hide
-        \ buftype=nowrite
-        \ noruler
-        \ laststatus=0
-        \ shiftwidth=2
-        \ nonumber
-        \ nomodifiable
-        \ readonly
-        \ norelativenumber
-        \ nospell
-        \ noswapfile
-        \ signcolumn=no
+    silent! setlocal
+          \ filetype=treevial
+          \ bufhidden=hide
+          \ buftype=nowrite
+          \ noruler
+          \ laststatus=0
+          \ shiftwidth=2
+          \ nonumber
+          \ nomodifiable
+          \ readonly
+          \ norelativenumber
+          \ nospell
+          \ noswapfile
+          \ signcolumn=no
 
-  nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
-  nnoremap <silent><buffer> <Cr>   :call treevial#open()<Cr>
-  nnoremap <silent><buffer> <C-v>  :call treevial#open({'command': 'vspl'})<Cr>
-  nnoremap <silent><buffer> <C-x>  :call treevial#open({'command': 'spl'})<Cr>
+    if s:is_nvim
+      nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
+    endif
 
-  if refresh
+    nnoremap <silent><buffer> <Cr>  :call treevial#open()<Cr>
+    nnoremap <silent><buffer> <C-v> :call treevial#open({'command': 'vspl'})<Cr>
+    nnoremap <silent><buffer> <C-x> :call treevial#open({'command': 'spl'})<Cr>
+
     call b:root.expand()
     call treevial#render()
   endif
-
-  let b:booted = 1
 endfunction
 
 function! treevial#entry_under_cursor() abort
