@@ -18,6 +18,13 @@ function! treevial#vimenter() abort
   endif
 endfunction
 
+function! treevial#reload() abort
+  let cwd    = getcwd()
+  let b:root = s:entry(cwd, fnamemodify(cwd, ':h')).reopen_dirs(b:root)
+
+  call treevial#render()
+endfunction
+
 function! treevial#buffer(...) abort
   noautocmd edit treevial
 
@@ -27,36 +34,41 @@ function! treevial#buffer(...) abort
   let b:root    = get(b:,      'root',    s:entry(cwd, fnamemodify(cwd, ':h')))
   let b:entries = get(b:,      'entries', [])
 
+  silent! setlocal
+        \ filetype=treevial
+        \ bufhidden=hide
+        \ buftype=nowrite
+        \ noruler
+        \ laststatus=0
+        \ shiftwidth=2
+        \ nonumber
+        \ nomodifiable
+        \ readonly
+        \ norelativenumber
+        \ nospell
+        \ noswapfile
+        \ signcolumn=no
+
+  if s:is_nvim
+    nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
+  endif
+
+  nnoremap <silent><buffer> <Cr>  :call treevial#open()<Cr>
+  nnoremap <silent><buffer> <C-v> :call treevial#open({'command': 'vspl'})<Cr>
+  nnoremap <silent><buffer> <C-x> :call treevial#open({'command': 'spl'})<Cr>
+
+  augroup TreevialBuffer
+    autocmd!
+    autocmd BufEnter,FocusGained <buffer> call treevial#reload()
+  augroup END
+
   if refresh
     let b:root    = s:entry(cwd, fnamemodify(cwd, ':h'))
     let b:entries = []
-
-    silent! setlocal
-          \ filetype=treevial
-          \ bufhidden=hide
-          \ buftype=nowrite
-          \ noruler
-          \ laststatus=0
-          \ shiftwidth=2
-          \ nonumber
-          \ nomodifiable
-          \ readonly
-          \ norelativenumber
-          \ nospell
-          \ noswapfile
-          \ signcolumn=no
-
-    if s:is_nvim
-      nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
-    endif
-
-    nnoremap <silent><buffer> <Cr>  :call treevial#open()<Cr>
-    nnoremap <silent><buffer> <C-v> :call treevial#open({'command': 'vspl'})<Cr>
-    nnoremap <silent><buffer> <C-x> :call treevial#open({'command': 'spl'})<Cr>
-
-    call b:root.expand()
-    call treevial#render()
   endif
+
+  call b:root.expand()
+  call treevial#render()
 endfunction
 
 function! treevial#entry_under_cursor() abort
@@ -157,8 +169,10 @@ function! s:entry(path, root) abort
         \ 'collapse': function('s:entry_collapse', entry),
         \ 'toggle': function('s:entry_toggle', entry),
         \ 'children': function('s:entry_children', entry),
+        \ 'fetched_children': function('s:entry_fetched_children', entry),
         \ 'list': function('s:entry_list', entry),
-        \ 'open': function('s:entry_open', entry)
+        \ 'open': function('s:entry_open', entry),
+        \ 'reopen_dirs': function('s:entry_reopen_dirs', entry)
         \ })
 
   return entry
@@ -182,8 +196,8 @@ function! s:entry_collapse(...) dict
 
   call self.update({'is_open': 0})
 
-  if self.is_dir && recursive && has_key(self, '_children')
-    for child_entry in self.children()
+  if self.is_dir && recursive
+    for child_entry in self.fetched_children()
       call child_entry.collapse(settings)
     endfor
   endif
@@ -228,6 +242,10 @@ function! s:entry_children() dict
     call extend(self, {'_children': children})
   endif
 
+  return self.fetched_children()
+endfunction
+
+function! s:entry_fetched_children() dict
   return get(self, '_children', [])
 endfunction
 
@@ -245,11 +263,32 @@ function! s:entry_list(...) dict
   return result
 endfunction
 
+function! s:entry_reopen_dirs(previous) dict
+  let new_entries         = self.expand().children()
+  let old_entries_by_path = {}
+
+  for old_entry in a:previous.fetched_children()
+    let old_entries_by_path[old_entry.path] = old_entry
+  endfor
+
+  for new_entry in new_entries
+    let old_entry = get(old_entries_by_path, new_entry.path, 0)
+
+    if type(old_entry) ==# type({})
+      if new_entry.is_dir && old_entry.is_dir && old_entry.is_open
+        call new_entry.reopen_dirs(old_entry)
+      endif
+    endif
+  endfor
+
+  return self
+endfunction
+
 if !exists(':Treevial')
   command -bang Treevial call treevial#buffer({'bang': <bang>0})
 endif
 
-augroup treevial
+augroup Treevial
   autocmd!
   autocmd VimEnter * nested call treevial#vimenter()
 augroup END
