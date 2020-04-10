@@ -34,8 +34,7 @@ function! s:view.buffer(...) abort
   let reload    = get(options, 'bang',    !exists('b:entries'))
   let b:cwd     = get(options, 'cwd',     getcwd())
   let b:entries = get(b:,      'entries', [])
-  let b:root    = get(b:,      'root',
-        \ s:entry.new(b:cwd, fnamemodify(b:cwd, ':h')).expand())
+  let b:root    = get(b:,      'root',    s:entry.new(b:cwd).expand())
 
   setfiletype treevial
   setlocal noru nonu nornu noma nomod ro noswf nospell
@@ -45,6 +44,13 @@ function! s:view.buffer(...) abort
   setlocal shiftwidth=2
   setlocal signcolumn=no
 
+  augroup TreevialBuffer
+    autocmd!
+    autocmd BufEnter,FocusGained <buffer>
+          \ call s:view.reload() |
+          \ call s:view.render()
+  augroup END
+
   if s:is_nvim
     nnoremap <buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
   endif
@@ -52,13 +58,6 @@ function! s:view.buffer(...) abort
   nnoremap <buffer> <Cr>  :call treevial#open()<Cr>
   nnoremap <buffer> <C-v> :call treevial#open({'command': 'vspl'})<Cr>
   nnoremap <buffer> <C-x> :call treevial#open({'command': 'spl'})<Cr>
-
-  augroup TreevialBuffer
-    autocmd!
-    autocmd BufEnter,FocusGained <buffer>
-          \ call s:view.reload() |
-          \ call s:view.render()
-  augroup END
 
   if reload
     call s:view.reload()
@@ -73,7 +72,7 @@ function! s:view.render() abort
 endfunction
 
 function! s:view.reload() abort
-  let b:root = s:entry.new(b:cwd, fnamemodify(b:cwd, ':h')).reopen_dirs(b:root)
+  let b:root = s:entry.new(b:cwd).reopen_dirs(b:root)
 endfunction
 
 function! s:view.update() abort
@@ -138,12 +137,13 @@ function! s:util.clear_trailing_empty_lines() abort
   endwhile
 endfunction
 
-function! s:entry.new(path, root) abort
+function! s:entry.new(path, ...) abort
   let is_dir = isdirectory(a:path)
+  let root   = get(a:, 1, fnamemodify(a:path, ':h'))
   let path   = fnamemodify(a:path, ':p')
 
   return extend(deepcopy(s:entry), {
-        \ 'name': substitute(path, a:root, '', '')[1:],
+        \ 'name': substitute(path, root, '', '')[1:],
         \ 'path': path,
         \ 'is_dir': is_dir,
         \ 'is_open': 0,
@@ -209,8 +209,7 @@ function! s:entry.children() dict
   if self.is_dir && !has_key(self, '_children')
     let root     = substitute(self.path, '/\+$', '', '')
     let children = sort(sort(map(filter(
-        \ glob(root . '/*',  0, 1) +
-        \ glob(root . '/.*', 0, 1),
+        \ glob(root . '/*',  0, 1) + glob(root . '/.*', 0, 1),
         \ {_,  p  -> p !~# '/\.\.\?$'}),
         \ {_,  p  -> s:entry.new(p, root)}),
         \ {x1, x2 -> x1.name >? x2.name}),
