@@ -1,6 +1,4 @@
 " disable netrw, rtp+=. will load the treevial plugin
-let g:loaded_netrw       = 1
-let g:loaded_netrwPlugin = 1
 
 " allow plugins to load
 set nocompatible
@@ -12,6 +10,8 @@ syntax on
 
 " source current directory
 set rtp+=.
+
+set wildignore=.git,.DS_Store
 
 " below are things I need to stay sane during development
 set splitright splitbelow

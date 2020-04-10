@@ -2,105 +2,117 @@ if exists('g:loaded_treevial')
   finish
 endif
 
-let g:loaded_treevial = 1
-let s:util            = {}
-let s:is_nvim         = has('nvim')
-let s:is_vim          = !s:is_nvim
-let s:save_cpo        = &cpo
+let g:loaded_netrw       = 1
+let g:loaded_netrwPlugin = 1
+let g:loaded_treevial    = 1
+let s:util               = {}
+let s:view               = {}
+let s:entry              = {}
+let s:is_nvim            = has('nvim')
+let s:is_vim             = !s:is_nvim
+let s:save_cpo           = &cpo
 set cpo&vim
-
-function! treevial#vimenter() abort
-  let root_target = get(argv(), 0, getcwd())
-  let no_lnum     = line2byte('$') ==# -1
-
-  if isdirectory(root_target) && no_lnum && !&insertmode && &modifiable
-    call treevial#buffer()
-  endif
-endfunction
-
-function! treevial#reload() abort
-  let cwd    = getcwd()
-  let b:root = s:entry(cwd, fnamemodify(cwd, ':h')).reopen_dirs(b:root)
-
-  call treevial#render()
-endfunction
-
-function! treevial#buffer(...) abort
-  noautocmd edit treevial
-
-  let options   = get(a:,      1,         {})
-  let refresh   = get(options, 'bang',    !exists('b:entries'))
-  let cwd       = get(options, 'cwd',     getcwd())
-  let b:root    = get(b:,      'root',    s:entry(cwd, fnamemodify(cwd, ':h')))
-  let b:entries = get(b:,      'entries', [])
-
-  silent! setlocal
-        \ filetype=treevial
-        \ bufhidden=hide
-        \ buftype=nowrite
-        \ noruler
-        \ laststatus=0
-        \ shiftwidth=2
-        \ nonumber
-        \ nomodifiable
-        \ readonly
-        \ norelativenumber
-        \ nospell
-        \ noswapfile
-        \ signcolumn=no
-
-  if s:is_nvim
-    nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
-  endif
-
-  nnoremap <silent><buffer> <Cr>  :call treevial#open()<Cr>
-  nnoremap <silent><buffer> <C-v> :call treevial#open({'command': 'vspl'})<Cr>
-  nnoremap <silent><buffer> <C-x> :call treevial#open({'command': 'spl'})<Cr>
-
-  augroup TreevialBuffer
-    autocmd!
-    autocmd BufEnter,FocusGained <buffer> call treevial#reload()
-  augroup END
-
-  if refresh
-    let b:root    = s:entry(cwd, fnamemodify(cwd, ':h'))
-    let b:entries = []
-  endif
-
-  call b:root.expand()
-  call treevial#render()
-endfunction
-
-function! treevial#entry_under_cursor() abort
-  let lnum = line('.') - 2
-
-  return lnum >? -1 ? get(get(b:entries, lnum, []), 0, 0) : 0
-endfunction
 
 function! treevial#open(...) abort
   let settings = get(a:, 1, {})
-  let entry    = treevial#entry_under_cursor()
+  let entry    = s:util.entry_under_cursor()
 
   if type(entry) ==# type({})
     if entry.is_dir
       call entry.toggle(settings)
-      call treevial#render()
+      call s:view.render()
     else
       call entry.open(settings)
     endif
   endif
 endfunction
 
-function! treevial#render() abort
-  call treevial#update()
-  call treevial#draw()
+function! s:view.buffer(...) abort
+  noautocmd edit treevial
+
+  let options   = get(a:,      1,         {})
+  let reload    = get(options, 'bang',    !exists('b:entries'))
+  let b:cwd     = get(options, 'cwd',     getcwd())
+  let b:entries = get(b:,      'entries', [])
+  let b:root    = get(b:,      'root',
+        \ s:entry.new(b:cwd, fnamemodify(b:cwd, ':h')).expand())
+
+  setfiletype treevial
+  setlocal noru nonu nornu noma nomod ro noswf nospell
+  setlocal bufhidden=hide
+  setlocal buftype=nowrite
+  setlocal laststatus=0
+  setlocal shiftwidth=2
+  setlocal signcolumn=no
+
+  if s:is_nvim
+    nnoremap <buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
+  endif
+
+  nnoremap <buffer> <Cr>  :call treevial#open()<Cr>
+  nnoremap <buffer> <C-v> :call treevial#open({'command': 'vspl'})<Cr>
+  nnoremap <buffer> <C-x> :call treevial#open({'command': 'spl'})<Cr>
+
+  augroup TreevialBuffer
+    autocmd!
+    autocmd BufEnter,FocusGained <buffer>
+          \ call s:view.reload() |
+          \ call s:view.render()
+  augroup END
+
+  if reload
+    call s:view.reload()
+  else
+    call s:view.render()
+  endif
 endfunction
 
-function! treevial#update() abort
+function! s:view.render() abort
+  call s:view.update()
+  call s:view.draw()
+endfunction
+
+function! s:view.reload() abort
+  let b:root = s:entry.new(b:cwd, fnamemodify(b:cwd, ':h')).reopen_dirs(b:root)
+endfunction
+
+function! s:view.update() abort
   let b:entries = b:root.list()
 endfunction
 
-function! treevial#winrestview(position) abort
+function! s:view.draw() abort
+  let saved_view   = winsaveview()
+  let target       = bufname('%')
+  let current_lnum = 0
+
+  setlocal ma noro
+
+  call s:util.clear_buffer()
+  call append(current_lnum, b:root.name)
+
+  for [entry, depth] in b:entries
+    let current_lnum += 1
+    let indent        = repeat(' ', depth * &sw)
+    let prefix        = entry.is_dir && len(entry.fetched_children())
+          \ ? entry.is_open ? '- ' : '+ '
+          \ : '  '
+
+    call append(current_lnum, indent . prefix . entry.name)
+  endfor
+
+  call s:util.clear_trailing_empty_lines()
+  call s:util.winrestview(saved_view)
+
+  setlocal noma ro nomod
+endfunction
+
+function! s:util.entry_under_cursor() abort
+  let lnum = line('.') - 2
+
+  return lnum >? -1 ? get(get(b:entries, lnum, []), 0, 0) : 0
+endfunction
+
+function! s:util.winrestview(position) abort
   let curr_winnr = winnr()
   let windows    = filter(map(
         \ win_findbuf(bufnr('%')),
@@ -116,81 +128,46 @@ function! treevial#winrestview(position) abort
   call winrestview(a:position)
 endfunction
 
-function! treevial#draw() abort
-  let saved_view   = winsaveview()
-  let target       = bufname('%')
-  let current_lnum = 0
-
-  setlocal modifiable noreadonly
-
-  call s:util.clear_buffer()
-  call append(current_lnum, b:root.name)
-
-  for [data, idx] in map(copy(b:entries), '[v:val, v:key]')
-    let current_lnum   += 1
-    let [entry, depth]  = data
-    let indent          = repeat(' ', depth * &sw)
-    let prefix          = entry.is_dir && len(entry.children())
-          \ ? entry.is_open ? '- ' : '+ '
-          \ : '  '
-
-    call append(current_lnum, indent . prefix . entry.name)
-  endfor
-
-  call s:util.clear_trailing_empty_lines_from_buffer()
-  call treevial#winrestview(saved_view)
-
-  setlocal nomodified nomodifiable readonly
-endfunction
-
 function! s:util.clear_buffer() abort
   exe 'normal! ggdG:\<Esc>'
 endfunction
 
-function! s:util.clear_trailing_empty_lines_from_buffer() abort
+function! s:util.clear_trailing_empty_lines() abort
   while empty(getline('$'))
     exe 'normal! dd:\<Esc>'
   endwhile
 endfunction
 
-function! s:entry(path, root) abort
+function! s:entry.new(path, root) abort
   let is_dir = isdirectory(a:path)
   let path   = fnamemodify(a:path, ':p')
-  let entry  = {
+
+  return extend(deepcopy(s:entry), {
         \ 'name': substitute(path, a:root, '', '')[1:],
         \ 'path': path,
         \ 'is_dir': is_dir,
-        \ 'is_open': 0
-        \ }
-
-  call extend(entry, {
-        \ 'update': function('extend', [entry]),
-        \ 'expand': function('s:entry_expand', entry),
-        \ 'collapse': function('s:entry_collapse', entry),
-        \ 'toggle': function('s:entry_toggle', entry),
-        \ 'children': function('s:entry_children', entry),
-        \ 'fetched_children': function('s:entry_fetched_children', entry),
-        \ 'list': function('s:entry_list', entry),
-        \ 'open': function('s:entry_open', entry),
-        \ 'reopen_dirs': function('s:entry_reopen_dirs', entry)
+        \ 'is_open': 0,
+        \ 'new': 0
         \ })
-
-  return entry
 endfunction
 
-function! s:entry_open(...) dict
+function! s:entry.update(properties) dict
+  return extend(self, a:properties)
+endfunction
+
+function! s:entry.open(...) dict
   let options = get(a:, 1, {})
 
   exe get(options, 'command', 'edit') fnameescape(self.path)
 endfunction
 
-function! s:entry_toggle(...) dict
+function! s:entry.toggle(...) dict
   let settings = get(a:, 1, {})
 
   return self.is_open ? self.collapse(settings) : self.expand(settings)
 endfunction
 
-function! s:entry_collapse(...) dict
+function! s:entry.collapse(...) dict
   let settings  = get(a:, 1, {})
   let recursive = get(settings, 'shift', 0)
 
@@ -205,7 +182,7 @@ function! s:entry_collapse(...) dict
   return self
 endfunction
 
-function! s:entry_expand(...) dict
+function! s:entry.expand(...) dict
   call self.update({'is_open': self.is_dir})
 
   for child_entry in self.children()
@@ -228,14 +205,14 @@ function! s:entry_expand(...) dict
   return self
 endfunction
 
-function! s:entry_children() dict
+function! s:entry.children() dict
   if self.is_dir && !has_key(self, '_children')
     let root     = substitute(self.path, '/\+$', '', '')
     let children = sort(sort(map(filter(
         \ glob(root . '/*',  0, 1) +
         \ glob(root . '/.*', 0, 1),
         \ {_,  p  -> p !~# '/\.\.\?$'}),
-        \ {_,  p  -> s:entry(p, root)}),
+        \ {_,  p  -> s:entry.new(p, root)}),
         \ {x1, x2 -> x1.name >? x2.name}),
         \ {x1, x2 -> x2.is_dir - x1.is_dir})
 
@@ -245,11 +222,11 @@ function! s:entry_children() dict
   return self.fetched_children()
 endfunction
 
-function! s:entry_fetched_children() dict
+function! s:entry.fetched_children() dict
   return get(self, '_children', [])
 endfunction
 
-function! s:entry_list(...) dict
+function! s:entry.list(...) dict
   let depth  = get(a:, 1, 0)
   let result = []
 
@@ -263,7 +240,7 @@ function! s:entry_list(...) dict
   return result
 endfunction
 
-function! s:entry_reopen_dirs(previous) dict
+function! s:entry.reopen_dirs(previous) dict
   let new_entries         = self.expand().children()
   let old_entries_by_path = {}
 
@@ -284,13 +261,22 @@ function! s:entry_reopen_dirs(previous) dict
   return self
 endfunction
 
+function! s:vimenter() abort
+  let root_target = get(argv(), 0, getcwd())
+  let no_lnum     = line2byte('$') ==# -1
+
+  if isdirectory(root_target) && no_lnum && !&insertmode && &modifiable
+    call s:view.buffer({'cwd': root_target})
+  endif
+endfunction
+
 if !exists(':Treevial')
-  command -bang Treevial call treevial#buffer({'bang': <bang>0})
+  command -bang Treevial call s:view.buffer({'bang': <bang>0})
 endif
 
 augroup Treevial
   autocmd!
-  autocmd VimEnter * nested call treevial#vimenter()
+  autocmd VimEnter * nested call s:vimenter()
 augroup END
 
 let &cpo = s:save_cpo
