@@ -9,6 +9,7 @@ let s:util               = {}
 let s:view               = {}
 let s:entry              = {}
 let s:is_nvim            = has('nvim')
+let s:mark_prefix        = has('multi_byte') ? '• ' : '* '
 let s:is_vim             = !s:is_nvim
 let s:save_cpo           = &cpo
 set cpo&vim
@@ -36,7 +37,10 @@ function! treevial#mark(...) abort
   if s:util.is_entry(entry)
     call entry.mark()
     call entry.mark_children()
-    call entry.mark_parents()
+
+    if !entry.is_marked
+      call entry.mark_parents()
+    endif
 
     call cursor(lnum + (shift ? -1 : 1), 1)
     call s:view.render()
@@ -58,6 +62,7 @@ endfunction
 
 function! s:view.buffer(...) abort
   noautocmd edit treevial
+  setfiletype treevial
 
   let options   = get(a:,      1,         {})
   let reload    = get(options, 'bang',    !exists('b:entries'))
@@ -65,7 +70,6 @@ function! s:view.buffer(...) abort
   let b:entries = get(b:,      'entries', [])
   let b:root    = get(b:,      'root',    s:entry.new(b:cwd).expand())
 
-  setfiletype treevial
   setlocal noru nonu nornu noma nomod ro noswf nospell
   setlocal bufhidden=hide
   setlocal buftype=nowrite
@@ -93,13 +97,13 @@ function! s:view.buffer(...) abort
   nnoremap <silent><buffer> <C-x>   :call treevial#open({'command': 'spl'})<Cr>
   nnoremap <silent><buffer> <Tab>   :call treevial#mark()<Cr>
   nnoremap <silent><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
-  nnoremap <silent><buffer> <Esc>   :call treevial#unmark_all()<Cr><Esc>
+  nnoremap <silent><buffer> mc      :call treevial#unmark_all()<Cr><Esc>
 
   if reload
     call s:view.reload()
-  else
-    call s:view.render()
   endif
+
+  call s:view.render()
 endfunction
 
 function! s:view.reload() abort
@@ -111,7 +115,7 @@ function! s:view.render() abort
   let saved_view   = winsaveview()
   let target       = bufname('%')
   let current_lnum = 0
-  let mark_prefix  = b:root.has_marked_entries() ? '* ' : '  '
+  let mark_prefix  = b:root.has_marked_entries() ? s:mark_prefix : '  '
 
   setlocal ma noro
 
@@ -141,22 +145,6 @@ function! s:view.render() abort
   setlocal noma ro nomod
 endfunction
 
-function! s:entry.has_marked_entries() abort dict
-  for child_entry in self.fetched_children()
-    if child_entry.is_marked
-      return 1
-    endif
-  endfor
-
-  for child_entry in self.fetched_children()
-    if child_entry.has_marked_entries()
-      return 1
-    endif
-  endfor
-
-  return 0
-endfunction
-
 function! s:util.lnum_to_entry(lnum) abort
   return a:lnum >? 1 ? get(get(b:entries, a:lnum - 2, []), 0, 0) : 0
 endfunction
@@ -184,13 +172,13 @@ function! s:util.winrestview(position) abort
 endfunction
 
 function! s:util.clear_buffer() abort
-  exe 'normal! ggdG:\<Esc>'
+  call deletebufline('%', 1, line('$')) | echo ''
 endfunction
 
 function! s:util.clear_trailing_empty_lines() abort
   while empty(getline('$'))
-    exe 'normal! dd:\<Esc>'
-  endwhile
+    call deletebufline('%', line('$'))
+  endwhile | echo ''
 endfunction
 
 function! s:util.is_entry(entry) abort
@@ -357,6 +345,16 @@ function! s:entry.synchronize(previous) abort dict
   endfor
 
   return self
+endfunction
+
+function! s:entry.has_marked_entries() abort dict
+  for child_entry in self.fetched_children()
+    if child_entry.is_marked || child_entry.has_marked_entries()
+      return 1
+    endif
+  endfor
+
+  return 0
 endfunction
 
 function! s:vimenter() abort
