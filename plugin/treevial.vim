@@ -14,16 +14,30 @@ let s:save_cpo           = &cpo
 set cpo&vim
 
 function! treevial#open(...) abort
-  let settings = get(a:, 1, {})
-  let entry    = s:util.entry_under_cursor()
+  let options = get(a:, 1, {})
+  let entry   = s:util.lnum_to_entry(line('.'))
 
-  if type(entry) ==# type({})
+  if s:util.is_entry(entry)
     if entry.is_dir
-      call entry.toggle(settings)
+      call entry.toggle(options)
       call s:view.render()
     else
-      call entry.open(settings)
+      call entry.open(options)
     endif
+  endif
+endfunction
+
+function! treevial#mark(...) abort
+  let options = get(a:, 1, {})
+  let lnum    = line('.')
+  let entry   = s:util.lnum_to_entry(lnum)
+
+  if s:util.is_entry(entry)
+    let shift = get(options, 'shift', 0)
+
+    call entry.mark()
+    call cursor(lnum + (shift ? -1 : 1), 1)
+    call s:view.render()
   endif
 endfunction
 
@@ -49,15 +63,21 @@ function! s:view.buffer(...) abort
     autocmd BufEnter,FocusGained <buffer>
           \ call s:view.reload() |
           \ call s:view.render()
+    autocmd CursorMoved <buffer>
+          \ call s:util.keep_cursor_below_root()
   augroup END
 
   if s:is_nvim
-    nnoremap <buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
+    nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
   endif
 
-  nnoremap <buffer> <Cr>  :call treevial#open()<Cr>
-  nnoremap <buffer> <C-v> :call treevial#open({'command': 'vspl'})<Cr>
-  nnoremap <buffer> <C-x> :call treevial#open({'command': 'spl'})<Cr>
+  nnoremap <silent><buffer> v       <Nop>
+  nnoremap <silent><buffer> V       <Nop>
+  nnoremap <silent><buffer> <Cr>    :call treevial#open()<Cr>
+  nnoremap <silent><buffer> <C-v>   :call treevial#open({'command': 'vspl'})<Cr>
+  nnoremap <silent><buffer> <C-x>   :call treevial#open({'command': 'spl'})<Cr>
+  nnoremap <silent><buffer> <Tab>   :call treevial#mark()<Cr>
+  nnoremap <silent><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
 
   if reload
     call s:view.reload()
@@ -66,20 +86,12 @@ function! s:view.buffer(...) abort
   endif
 endfunction
 
-function! s:view.render() abort
-  call s:view.update()
-  call s:view.draw()
-endfunction
-
 function! s:view.reload() abort
-  let b:root = s:entry.new(b:cwd).reopen_dirs(b:root)
+  let b:root = s:entry.new(b:cwd).synchronize(b:root)
 endfunction
 
-function! s:view.update() abort
-  let b:entries = b:root.list()
-endfunction
-
-function! s:view.draw() abort
+function! s:view.render() abort
+  let b:entries    = b:root.list()
   let saved_view   = winsaveview()
   let target       = bufname('%')
   let current_lnum = 0
@@ -87,6 +99,7 @@ function! s:view.draw() abort
   setlocal ma noro
 
   call s:util.clear_buffer()
+  call clearmatches()
   call append(current_lnum, b:root.name)
 
   for [entry, depth] in b:entries
@@ -95,6 +108,10 @@ function! s:view.draw() abort
     let prefix        = entry.is_dir && len(entry.fetched_children())
           \ ? entry.is_open ? '- ' : '+ '
           \ : '  '
+
+    if entry.is_marked
+      call matchaddpos('TreevialMarked', [current_lnum + 1])
+    endif
 
     call append(current_lnum, indent . prefix . entry.name)
   endfor
@@ -105,10 +122,14 @@ function! s:view.draw() abort
   setlocal noma ro nomod
 endfunction
 
-function! s:util.entry_under_cursor() abort
-  let lnum = line('.') - 2
+function! s:util.lnum_to_entry(lnum) abort
+  return a:lnum >? 1 ? get(get(b:entries, a:lnum - 2, []), 0, 0) : 0
+endfunction
 
-  return lnum >? -1 ? get(get(b:entries, lnum, []), 0, 0) : 0
+function! s:util.keep_cursor_below_root() abort
+  if line('.') <=? 1
+    call cursor(2, col('.'))
+  endif
 endfunction
 
 function! s:util.winrestview(position) abort
@@ -147,42 +168,51 @@ function! s:entry.new(path, ...) abort
         \ 'path': path,
         \ 'is_dir': is_dir,
         \ 'is_open': 0,
+        \ 'is_marked': 0,
         \ 'new': 0
         \ })
 endfunction
 
-function! s:entry.update(properties) dict
+function! s:util.is_entry(entry) abort
+  return type(a:entry) ==# type({})
+endfunction
+
+function! s:entry.update(properties) abort dict
   return extend(self, a:properties)
 endfunction
 
-function! s:entry.open(...) dict
+function! s:entry.open(...) abort dict
   let options = get(a:, 1, {})
 
   exe get(options, 'command', 'edit') fnameescape(self.path)
 endfunction
 
-function! s:entry.toggle(...) dict
-  let settings = get(a:, 1, {})
+function! s:entry.toggle(...) abort dict
+  let options = get(a:, 1, {})
 
-  return self.is_open ? self.collapse(settings) : self.expand(settings)
+  return self.is_open ? self.collapse(options) : self.expand(options)
 endfunction
 
-function! s:entry.collapse(...) dict
-  let settings  = get(a:, 1, {})
-  let recursive = get(settings, 'shift', 0)
+function s:entry.mark(...) abort dict
+  return self.update({'is_marked': get(a:, 1, !self.is_marked)})
+endfunction
+
+function! s:entry.collapse(...) abort dict
+  let options   = get(a:, 1, {})
+  let recursive = get(options, 'shift', 0)
 
   call self.update({'is_open': 0})
 
   if self.is_dir && recursive
     for child_entry in self.fetched_children()
-      call child_entry.collapse(settings)
+      call child_entry.collapse(options)
     endfor
   endif
 
   return self
 endfunction
 
-function! s:entry.expand(...) dict
+function! s:entry.expand(...) abort dict
   call self.update({'is_open': self.is_dir})
 
   for child_entry in self.children()
@@ -205,7 +235,7 @@ function! s:entry.expand(...) dict
   return self
 endfunction
 
-function! s:entry.children() dict
+function! s:entry.children() abort dict
   if self.is_dir && !has_key(self, '_children')
     let root     = substitute(self.path, '/\+$', '', '')
     let children = sort(sort(map(filter(
@@ -221,11 +251,11 @@ function! s:entry.children() dict
   return self.fetched_children()
 endfunction
 
-function! s:entry.fetched_children() dict
+function! s:entry.fetched_children() abort dict
   return get(self, '_children', [])
 endfunction
 
-function! s:entry.list(...) dict
+function! s:entry.list(...) abort dict
   let depth  = get(a:, 1, 0)
   let result = []
 
@@ -239,7 +269,7 @@ function! s:entry.list(...) dict
   return result
 endfunction
 
-function! s:entry.reopen_dirs(previous) dict
+function! s:entry.synchronize(previous) abort dict
   let new_entries         = self.expand().children()
   let old_entries_by_path = {}
 
@@ -250,9 +280,10 @@ function! s:entry.reopen_dirs(previous) dict
   for new_entry in new_entries
     let old_entry = get(old_entries_by_path, new_entry.path, 0)
 
-    if type(old_entry) ==# type({})
+    if s:util.is_entry(old_entry)
+      call new_entry.update({'is_marked': old_entry.is_marked})
       if new_entry.is_dir && old_entry.is_dir && old_entry.is_open
-        call new_entry.reopen_dirs(old_entry)
+        call new_entry.synchronize(old_entry)
       endif
     endif
   endfor
