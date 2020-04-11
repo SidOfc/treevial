@@ -4,4 +4,4 @@ hi def TreevialMarked   ctermfg=Yellow   guifg=Yellow
 hi def TreevialDirState ctermfg=DarkGray guifg=DarkGray
 
 syn match TreevialDir      /\([^ \/]\+\/\)\+/
-syn match TreevialDirState /^\s*[+-]/
+syn match TreevialDirState /^\s*[+\-*]/

@@ -29,14 +29,29 @@ endfunction
 
 function! treevial#mark(...) abort
   let options = get(a:, 1, {})
-  let lnum    = line('.')
+  let lnum    = get(options, 'lnum', line('.'))
+  let shift   = get(options, 'shift', 0)
   let entry   = s:util.lnum_to_entry(lnum)
 
   if s:util.is_entry(entry)
-    let shift = get(options, 'shift', 0)
-
     call entry.mark()
+    call entry.mark_children()
+    call entry.mark_parents()
+
     call cursor(lnum + (shift ? -1 : 1), 1)
+    call s:view.render()
+  endif
+endfunction
+
+function! treevial#unmark_all() abort
+  let rerender = 0
+
+  for [entry, _] in b:entries
+    let rerender = rerender || entry.is_marked
+    call entry.mark(0)
+  endfor
+
+  if rerender
     call s:view.render()
   endif
 endfunction
@@ -78,6 +93,7 @@ function! s:view.buffer(...) abort
   nnoremap <silent><buffer> <C-x>   :call treevial#open({'command': 'spl'})<Cr>
   nnoremap <silent><buffer> <Tab>   :call treevial#mark()<Cr>
   nnoremap <silent><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
+  nnoremap <silent><buffer> <Esc>   :call treevial#unmark_all()<Cr><Esc>
 
   if reload
     call s:view.reload()
@@ -95,6 +111,7 @@ function! s:view.render() abort
   let saved_view   = winsaveview()
   let target       = bufname('%')
   let current_lnum = 0
+  let mark_prefix  = b:root.has_marked_entries() ? '* ' : '  '
 
   setlocal ma noro
 
@@ -104,13 +121,13 @@ function! s:view.render() abort
 
   for [entry, depth] in b:entries
     let current_lnum += 1
-    let indent        = repeat(' ', depth * &sw)
-    let prefix        = entry.is_dir && len(entry.fetched_children())
-          \ ? entry.is_open ? '- ' : '+ '
-          \ : '  '
+    let repeat_indent = depth * 2
+    let indent        = repeat(' ', repeat_indent)
+    let prefix        = len(entry.fetched_children())
+          \ ? entry.is_open ? '- ' : '+ ' : mark_prefix
 
-    if entry.is_marked
-      call matchaddpos('TreevialMarked', [current_lnum + 1])
+    if entry.is_marked || entry.has_marked_entries()
+      call matchaddpos('TreevialMarked', [[current_lnum + 1, repeat_indent + 1]])
     endif
 
     call append(current_lnum, indent . prefix . entry.name)
@@ -120,6 +137,22 @@ function! s:view.render() abort
   call s:util.winrestview(saved_view)
 
   setlocal noma ro nomod
+endfunction
+
+function! s:entry.has_marked_entries() abort dict
+  for child_entry in self.fetched_children()
+    if child_entry.is_marked
+      return 1
+    endif
+  endfor
+
+  for child_entry in self.fetched_children()
+    if child_entry.has_marked_entries()
+      return 1
+    endif
+  endfor
+
+  return 0
 endfunction
 
 function! s:util.lnum_to_entry(lnum) abort
@@ -158,6 +191,10 @@ function! s:util.clear_trailing_empty_lines() abort
   endwhile
 endfunction
 
+function! s:util.is_entry(entry) abort
+  return type(a:entry) ==# type({})
+endfunction
+
 function! s:entry.new(path, ...) abort
   let is_dir = isdirectory(a:path)
   let root   = get(a:, 1, fnamemodify(a:path, ':h'))
@@ -171,10 +208,6 @@ function! s:entry.new(path, ...) abort
         \ 'is_marked': 0,
         \ 'new': 0
         \ })
-endfunction
-
-function! s:util.is_entry(entry) abort
-  return type(a:entry) ==# type({})
 endfunction
 
 function! s:entry.update(properties) abort dict
@@ -197,13 +230,36 @@ function s:entry.mark(...) abort dict
   return self.update({'is_marked': get(a:, 1, !self.is_marked)})
 endfunction
 
+function! s:entry.mark_children() abort dict
+  for child_entry in self.fetched_children()
+    call child_entry.update({'is_marked': self.is_marked}).mark_children()
+  endfor
+
+  return self
+endfunction
+
+function! s:entry.mark_parents() abort dict
+  let parent = self.parent()
+
+  if s:util.is_entry(parent)
+    let unmarked_count = len(filter(
+          \ copy(parent.fetched_children()),
+          \ '!v:val.is_marked'))
+
+    call parent.update({'is_marked': unmarked_count ==# 0})
+    call parent.mark_parents()
+  endif
+
+  return self
+endfunction
+
 function! s:entry.collapse(...) abort dict
   let options   = get(a:, 1, {})
   let recursive = get(options, 'shift', 0)
 
   call self.update({'is_open': 0})
 
-  if self.is_dir && recursive
+  if recursive
     for child_entry in self.fetched_children()
       call child_entry.collapse(options)
     endfor
@@ -245,10 +301,20 @@ function! s:entry.children() abort dict
         \ {x1, x2 -> x1.name >? x2.name}),
         \ {x1, x2 -> x2.is_dir - x1.is_dir})
 
-    call extend(self, {'_children': children})
+    call extend(self, {'_children': map(
+          \ children,
+          \ {_, entry -> entry.update({
+          \   '_parent': self,
+          \   'is_marked': self.is_marked
+          \ })
+          \ })})
   endif
 
   return self.fetched_children()
+endfunction
+
+function! s:entry.parent() abort dict
+  return get(self, '_parent', 0)
 endfunction
 
 function! s:entry.fetched_children() abort dict
