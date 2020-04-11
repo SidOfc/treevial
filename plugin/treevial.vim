@@ -53,10 +53,55 @@ function! treevial#unmark_all() abort
   for [entry, _] in b:entries
     let rerender = rerender || entry.is_marked
     call entry.mark(0)
+    call entry.mark_children()
   endfor
 
   if rerender
     call s:view.render()
+  endif
+endfunction
+
+function! treevial#unlink() abort
+  let marked_entries = b:root.list_marked()
+  let marked_files   = []
+  let marked_dirs    = []
+  let message_lines  = []
+
+  for marked_entry in marked_entries
+    let target = marked_entry.is_dir ? marked_dirs : marked_files
+    call add(target, '  ' . marked_entry.path)
+  endfor
+
+  let files_len    = len(marked_files)
+  let dirs_len     = len(marked_dirs)
+  let files_header = s:util.pluralize_with_count('file', files_len)
+  let dirs_header  = s:util.pluralize_with_count('directory', dirs_len)
+
+  if files_len
+    let message_lines += [files_header . ':'] + marked_files + ['']
+  endif
+
+  if dirs_len
+    let dirs_pre       = files_len ? 'and ' : ''
+    let message_lines += [dirs_pre . dirs_header . ':'] + marked_dirs + ['']
+  endif
+
+  if files_len || dirs_len
+    echohl Comment
+    let message_lines += ['will be deleted, continue?', '']
+    let choice         = confirm(join(message_lines, "\n"), "&Yes\n&No\n&Cancel", 2)
+    echohl None
+    redraw
+
+    if choice ==# 1
+      " for marked_entry in marked_entries
+      "   let flag   = marked_entry.is_dir ? 'rf' : ''
+      "   let failed = delete(marked_entry, flag) ==# -1
+      "   let has_failures = has_failures || failed
+      " endfor
+
+      call treevial#unmark_all()
+    endif
   endif
 endfunction
 
@@ -86,10 +131,6 @@ function! s:view.buffer(...) abort
           \ call s:util.keep_cursor_below_root()
   augroup END
 
-  if s:is_nvim
-    nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
-  endif
-
   nnoremap <silent><buffer> v       <Nop>
   nnoremap <silent><buffer> V       <Nop>
   nnoremap <silent><buffer> <Cr>    :call treevial#open()<Cr>
@@ -97,7 +138,13 @@ function! s:view.buffer(...) abort
   nnoremap <silent><buffer> <C-x>   :call treevial#open({'command': 'spl'})<Cr>
   nnoremap <silent><buffer> <Tab>   :call treevial#mark()<Cr>
   nnoremap <silent><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
-  nnoremap <silent><buffer> mc      :call treevial#unmark_all()<Cr><Esc>
+  nnoremap <silent><buffer> !       :call treevial#unmark_all()<Cr><Esc>
+  nnoremap <silent><buffer> D       :call treevial#unlink()<Cr>
+
+  if s:is_nvim
+    nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
+    nnoremap <silent><buffer> <Esc>  :call treevial#unmark_all()<Cr><Esc>
+  endif
 
   if reload
     call s:view.reload()
@@ -143,6 +190,14 @@ function! s:view.render() abort
   call s:util.winrestview(saved_view)
 
   setlocal noma ro nomod
+endfunction
+
+function! s:util.pluralize_with_count(word, count) abort
+  let pluralized = a:word =~? 'y$'
+        \ ? a:count ==# 1 ? a:word : substitute(a:word, 'y$', 'ies', 'i')
+        \ : a:count ==# 1 ? a:word : a:word . 's'
+
+  return a:count . ' ' . pluralized
 endfunction
 
 function! s:util.lnum_to_entry(lnum) abort
@@ -345,6 +400,20 @@ function! s:entry.synchronize(previous) abort dict
   endfor
 
   return self
+endfunction
+
+function! s:entry.list_marked() abort dict
+  let marked = []
+
+  for child_entry in self.fetched_children()
+    if child_entry.is_marked
+      call add(marked, child_entry)
+    else
+      call extend(marked, child_entry.list_marked())
+    endif
+  endfor
+
+  return marked
 endfunction
 
 function! s:entry.has_marked_entries() abort dict
