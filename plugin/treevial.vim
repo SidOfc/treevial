@@ -121,13 +121,15 @@ function! s:view.render() abort
 
   for [entry, depth] in b:entries
     let current_lnum += 1
-    let repeat_indent = depth * 2
-    let indent        = repeat(' ', repeat_indent)
+    let indent_ws     = depth * 2
+    let indent        = repeat(' ', indent_ws)
     let prefix        = len(entry.fetched_children())
           \ ? entry.is_open ? '- ' : '+ ' : mark_prefix
 
-    if entry.is_marked || entry.has_marked_entries()
-      call matchaddpos('TreevialMarked', [[current_lnum + 1, repeat_indent + 1]])
+    if entry.is_marked
+      call matchaddpos('TreevialSelectedMark', [[current_lnum + 1, indent_ws + 1]])
+    elseif entry.has_marked_entries()
+      call matchaddpos('TreevialPartialMark',  [[current_lnum + 1, indent_ws + 1]])
     endif
 
     call append(current_lnum, indent . prefix . entry.name)
