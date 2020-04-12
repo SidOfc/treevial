@@ -2,6 +2,7 @@ if exists('g:loaded_treevial')
   finish
 endif
 
+" {{{ script setup
 let g:loaded_netrw       = 1
 let g:loaded_netrwPlugin = 1
 let g:loaded_treevial    = 1
@@ -13,7 +14,9 @@ let s:mark_prefix        = has('multi_byte') ? '• ' : '* '
 let s:is_vim             = !s:is_nvim
 let s:save_cpo           = &cpo
 set cpo&vim
+" }}}
 
+" {{{ main functionality
 function! treevial#open(...) abort
   let options = get(a:, 1, {})
   let entry   = s:util.lnum_to_entry(line('.'))
@@ -104,7 +107,9 @@ function! treevial#unlink() abort
     endif
   endif
 endfunction
+" }}}
 
+" {{{ s:view helpers
 function! s:view.buffer(...) abort
   noautocmd edit treevial
   setfiletype treevial
@@ -191,7 +196,9 @@ function! s:view.render() abort
 
   setlocal noma ro nomod
 endfunction
+" }}}
 
+" {{{ s:util helpers
 function! s:util.pluralize_with_count(word, count) abort
   let pluralized = a:word =~? 'y$'
         \ ? a:count ==# 1 ? a:word : substitute(a:word, 'y$', 'ies', 'i')
@@ -239,7 +246,9 @@ endfunction
 function! s:util.is_entry(entry) abort
   return type(a:entry) ==# type({})
 endfunction
+" }}}
 
+" {{{ s:entry model + helpers
 function! s:entry.new(path, ...) abort
   let is_dir = isdirectory(a:path)
   let root   = get(a:, 1, fnamemodify(a:path, ':h'))
@@ -425,7 +434,9 @@ function! s:entry.has_marked_entries() abort dict
 
   return 0
 endfunction
+" }}}
 
+" {{{ activation on startup + create Tree[vial][!] command
 function! s:vimenter() abort
   let root_target = get(argv(), 0, getcwd())
   let no_lnum     = line2byte('$') ==# -1
@@ -443,6 +454,9 @@ augroup Treevial
   autocmd!
   autocmd VimEnter * nested call s:vimenter()
 augroup END
+" }}}
 
+" {{{ script teardown
 let &cpo = s:save_cpo
 unlet s:save_cpo
+" }}}
