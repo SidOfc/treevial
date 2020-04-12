@@ -65,35 +65,15 @@ function! treevial#unmark_all() abort
 endfunction
 
 function! treevial#unlink() abort
-  let marked_entries = b:root.list_marked()
-  let marked_files   = []
-  let marked_dirs    = []
-  let message_lines  = []
+  let marked = b:root.list_actionable_marked()
 
-  for marked_entry in marked_entries
-    let target = marked_entry.is_dir ? marked_dirs : marked_files
-    call add(target, '  ' . marked_entry.path)
-  endfor
+  if len(marked)
+    let choice = confirm(printf(
+          \ "%s\nwill be deleted, continue?\n",
+          \ s:util.to_message_parts(marked)),
+          \ "&Yes\n&No\n&Cancel&Quit",
+          \ 2)
 
-  let files_len    = len(marked_files)
-  let dirs_len     = len(marked_dirs)
-  let files_header = s:util.pluralize_with_count('file', files_len)
-  let dirs_header  = s:util.pluralize_with_count('directory', dirs_len)
-
-  if files_len
-    let message_lines += [files_header . ':'] + marked_files + ['']
-  endif
-
-  if dirs_len
-    let dirs_pre       = files_len ? 'and ' : ''
-    let message_lines += [dirs_pre . dirs_header . ':'] + marked_dirs + ['']
-  endif
-
-  if files_len || dirs_len
-    echohl Comment
-    let message_lines += ['will be deleted, continue?', '']
-    let choice         = confirm(join(message_lines, "\n"), "&Yes\n&No\n&Cancel", 2)
-    echohl None
     redraw
 
     if choice ==# 1
@@ -102,8 +82,7 @@ function! treevial#unlink() abort
       "   let failed = delete(marked_entry, flag) ==# -1
       "   let has_failures = has_failures || failed
       " endfor
-
-      call treevial#unmark_all()
+      echo 'implement delete'
     endif
   endif
 endfunction
@@ -195,12 +174,10 @@ endfunction
 " }}}
 
 " {{{ s:util helpers
-function! s:util.pluralize_with_count(word, count) abort
-  let pluralized = a:word =~? 'y$'
+function! s:util.pluralize(word, count) abort
+  return a:word =~? 'y$'
         \ ? a:count ==# 1 ? a:word : substitute(a:word, 'y$', 'ies', 'i')
         \ : a:count ==# 1 ? a:word : a:word . 's'
-
-  return a:count . ' ' . pluralized
 endfunction
 
 function! s:util.lnum_to_entry(lnum) abort
@@ -412,14 +389,14 @@ function! s:entry.synchronize_with(previous) abort dict
   return self
 endfunction
 
-function! s:entry.list_marked() abort dict
+function! s:entry.list_actionable_marked() abort dict
   let marked = []
 
   for child_entry in self.fetched_children()
     if child_entry.is_marked
       call add(marked, child_entry)
     else
-      call extend(marked, child_entry.list_marked())
+      call extend(marked, child_entry.list_actionable_marked())
     endif
   endfor
 
@@ -434,6 +411,44 @@ function! s:entry.has_marked_entries() abort dict
   endfor
 
   return 0
+endfunction
+
+function! s:util.split_files_and_dirs(entries)
+  let files = []
+  let dirs  = []
+
+  for entry in a:entries
+    call add(entry.is_dir ? dirs : files, entry)
+  endfor
+
+  return [files, dirs]
+endfunction
+
+function! s:util.to_message_parts(entries, ...) abort
+  let [files, dirs] = s:util.split_files_and_dirs(a:entries)
+  let files_len     = len(files)
+  let dirs_len      = len(dirs)
+  let message       = ''
+
+  if files_len
+    let message .= printf(
+          \ "%d %s:\n%s\n",
+          \ files_len,
+          \ s:util.pluralize('file', files_len),
+          \ join(map(copy(files), '"  " . v:val.path'), "\n"))
+  endif
+
+  let message .= files_len && dirs_len ? "\nand " : "\n"
+
+  if dirs_len
+    let message .= printf(
+          \ "%d %s:\n%s\n",
+          \ dirs_len,
+          \ s:util.pluralize('directory', dirs_len),
+          \ join(map(copy(dirs), '"  " . v:val.path'), "\n"))
+  endif
+
+  return message
 endfunction
 " }}}
 
