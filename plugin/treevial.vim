@@ -115,7 +115,7 @@ function! s:view.buffer(...) abort
   setfiletype treevial
 
   let options   = get(a:,      1,         {})
-  let reload    = get(options, 'bang',    !exists('b:entries'))
+  let sync      = get(options, 'bang',    !exists('b:entries'))
   let b:cwd     = get(options, 'cwd',     getcwd())
   let b:entries = get(b:,      'entries', [])
   let b:root    = get(b:,      'root',    s:entry.new(b:cwd).expand())
@@ -130,7 +130,7 @@ function! s:view.buffer(...) abort
   augroup TreevialBuffer
     autocmd!
     autocmd BufEnter,FocusGained <buffer>
-          \ call s:view.reload() |
+          \ call b:root.sync() |
           \ call s:view.render()
     autocmd CursorMoved <buffer>
           \ call s:util.keep_cursor_below_root()
@@ -151,15 +151,10 @@ function! s:view.buffer(...) abort
     nnoremap <silent><buffer> <Esc>  :call treevial#unmark_all()<Cr><Esc>
   endif
 
-  if reload
-    call s:view.reload()
+  if sync
+    call b:root.sync()
+    call s:view.render()
   endif
-
-  call s:view.render()
-endfunction
-
-function! s:view.reload() abort
-  let b:root = s:entry.new(b:cwd).synchronize(b:root)
 endfunction
 
 function! s:view.render() abort
@@ -195,6 +190,7 @@ function! s:view.render() abort
   call s:util.winrestview(saved_view)
 
   setlocal noma ro nomod
+  redraw
 endfunction
 " }}}
 
@@ -389,7 +385,12 @@ function! s:entry.list(...) abort dict
   return result
 endfunction
 
-function! s:entry.synchronize(previous) abort dict
+function! s:entry.sync() abort dict
+  let dir_offset = self.is_dir ? -2 : -1
+  return self.update(s:entry.new(self.path[:dir_offset]).synchronize_with(self))
+endfunction
+
+function! s:entry.synchronize_with(previous) abort dict
   let new_entries         = self.expand().children()
   let old_entries_by_path = {}
 
@@ -403,7 +404,7 @@ function! s:entry.synchronize(previous) abort dict
     if s:util.is_entry(old_entry)
       call new_entry.update({'is_marked': old_entry.is_marked})
       if new_entry.is_dir && old_entry.is_dir && old_entry.is_open
-        call new_entry.synchronize(old_entry)
+        call new_entry.synchronize_with(old_entry)
       endif
     endif
   endfor
