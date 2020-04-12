@@ -1,5 +1,3 @@
-" disable netrw, rtp+=. will load the treevial plugin
-
 " allow plugins to load
 set nocompatible
 
@@ -11,9 +9,8 @@ syntax on
 " source current directory
 set rtp+=.
 
-set wildignore=.git,.DS_Store
-
 " below are things I need to stay sane during development
+set wildignore=.git,.DS_Store
 set splitright splitbelow
 
 " less painful debugging experience

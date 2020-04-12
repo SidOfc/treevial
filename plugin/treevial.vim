@@ -68,10 +68,13 @@ function! s:util.delete_all(entries) abort
   let failed_entries = []
 
   for entry in a:entries
-    " if delete(entry, entry.is_dir ? 'rf' : '') ==# -1
-    if 1
+    try
+      if delete(entry.path, entry.is_dir ? 'rf' : '') ==# -1
+        call add(failed_entries, entry)
+      endif
+    catch
       call add(failed_entries, entry)
-    endif
+    endtry
   endfor
 
   return failed_entries
@@ -84,7 +87,7 @@ function! treevial#unlink() abort
     let choice = confirm(printf(
           \ "%s\nwill be deleted, continue?\n",
           \ s:util.to_message_parts(marked)),
-          \ "&Yes\n&No\n&Cancel&Quit",
+          \ "&Yes\n&No\n&Cancel\n&Quit",
           \ 2)
 
     " close confirm prompt before showing other
@@ -95,7 +98,7 @@ function! treevial#unlink() abort
       let failed = s:util.delete_all(marked)
 
       if len(failed)
-        confirm(printf(
+        call confirm(printf(
               \ "%s\ncould not be removed and will remain marked!\n",
               \ s:util.to_message_parts(failed)))
       endif
@@ -457,7 +460,7 @@ function! s:util.to_message_parts(entries, ...) abort
           \ join(map(copy(files), '"  " . v:val.path'), "\n"))
   endif
 
-  let message .= files_len && dirs_len ? "\nand " : "\n"
+  let message .= files_len && dirs_len ? "\nand " : ""
 
   if dirs_len
     let message .= printf(
