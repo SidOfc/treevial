@@ -64,6 +64,19 @@ function! treevial#unmark_all() abort
   endif
 endfunction
 
+function! s:util.delete_all(entries) abort
+  let failed_entries = []
+
+  for entry in a:entries
+    " if delete(entry, entry.is_dir ? 'rf' : '') ==# -1
+    if 1
+      call add(failed_entries, entry)
+    endif
+  endfor
+
+  return failed_entries
+endfunction
+
 function! treevial#unlink() abort
   let marked = b:root.list_actionable_marked()
 
@@ -74,15 +87,21 @@ function! treevial#unlink() abort
           \ "&Yes\n&No\n&Cancel&Quit",
           \ 2)
 
+    " close confirm prompt before showing other
+    " potential echo's
     redraw
 
     if choice ==# 1
-      " for marked_entry in marked_entries
-      "   let flag   = marked_entry.is_dir ? 'rf' : ''
-      "   let failed = delete(marked_entry, flag) ==# -1
-      "   let has_failures = has_failures || failed
-      " endfor
-      echo 'implement delete'
+      let failed = s:util.delete_all(marked)
+
+      if len(failed)
+        confirm(printf(
+              \ "%s\ncould not be removed and will remain marked!\n",
+              \ s:util.to_message_parts(failed)))
+      endif
+
+      call b:root.sync()
+      call s:view.render()
     endif
   endif
 endfunction
