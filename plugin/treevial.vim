@@ -64,48 +64,186 @@ function! treevial#unmark_all() abort
   endif
 endfunction
 
-function! s:util.delete_all(entries) abort
-  let failed_entries = []
+" this 159 line beast will need a refactor
+" some things to improve still:
+" - allow user to choose to overwrite existing files
+function! treevial#move() abort
+  let marked = b:root.list_actionable_marked()
 
-  for entry in a:entries
-    try
-      if delete(entry.path, entry.is_dir ? 'rf' : '') ==# -1
-        call add(failed_entries, entry)
+  if empty(marked)
+    let entry  = s:util.lnum_to_entry(line('.'))
+    let marked = s:util.is_entry(entry) ? [entry] : []
+  endif
+
+  let destination  = input('destination: ', b:root.path, 'dir')
+  let marked_paths = map(copy(marked), 'v:val.path')
+  let dest_dir_idx = index(marked_paths, destination . '/')
+
+  " erase remaining text by clearing the screen
+  " before asking for confirmation
+  mode
+
+  if dest_dir_idx >? -1
+    let entry = get(marked, dest_dir_idx, 0)
+    if s:util.is_entry(entry)
+      if entry.is_marked
+        let choice = confirm(printf(
+              \ "unable to move '%s' into itself, what would you like to do?\n",
+              \ destination),
+              \ "&Unmark\n&Cancel\n&Quit")
+
+        if choice ==# 1
+          call entry.mark(0)
+          call entry.mark_children()
+
+          call filter(marked, 'v:val.is_marked')
+          call s:view.render()
+        else
+          " NOTE: early return!
+          return
+        endif
+      else
+        call confirm(printf(
+              \ "unable to move '%s' into itself\n",
+              \ entry.path))
+
+        " NOTE: early return!
+        return
       endif
-    catch
-      call add(failed_entries, entry)
-    endtry
-  endfor
+    else
+      call confirm(printf(
+            \ "%s\n\n%s\n",
+            \ 'aborting because this is probably a bug',
+            \ 'please open an issue on: https://github.com/sidofc/treevial/issues'))
 
-  return failed_entries
+      " NOTE: early return!
+      return
+    endif
+  endif
+
+  let dest_filenames = map(s:entry.new(destination).children(), 'v:val.filename')
+  let found_in_dest  = filter(
+        \ copy(marked),
+        \ {_, entry -> index(dest_filenames, entry.filename) >? -1})
+
+  if !empty(found_in_dest)
+    if len(marked) ==# 1 && !marked[0].is_marked
+      call confirm(printf(
+            \ "unable to move '%s' into '%s'\n\na file with the same name already exists\n",
+            \ marked[0].name,
+            \ destination))
+
+      " NOTE: early return!
+      return
+    else
+      let choice = confirm(printf(
+            \ "%s\nalready exist in: %s, what would you like to do?\n",
+            \ s:util.to_message_parts(found_in_dest),
+            \ destination),
+            \ "&Unmark existing\n&Cancel\n&Quit",
+            \ 2)
+
+      if choice ==# 1
+        for existing in found_in_dest
+          call existing.mark(0)
+          call existing.mark_children()
+        endfor
+
+        call filter(marked, 'v:val.is_marked')
+        call s:view.render()
+      else
+        " NOTE: early return
+        return
+      endif
+    endif
+  endif
+
+  " need to also check for existing files in destination directory
+  " aside from checking duplicates like below
+  let duplicates = s:util.duplicate_filenames(marked)
+
+  if !empty(duplicates)
+    let msg = "the following files / directories have identical names and will not be moved!\n\n"
+
+    for [filename, dupes] in duplicates
+      let msg .= printf("%s\n%s\n\n",
+            \ filename,
+            \ join(map(copy(dupes), '"  " . v:val.path'), "\n"))
+    endfor
+
+    let msg    .= "what would you like to do?\n"
+    let choice  = confirm(msg, "&Unmark duplicates\n&Cancel&Quit")
+
+    if choice ==# 1
+      for [_, dupes] in duplicates
+        for dupe in dupes[1:]
+          call dupe.mark(0)
+          call dupe.mark_children()
+        endfor
+      endfor
+
+      call filter(marked, 'v:val.is_marked')
+      call s:view.render()
+    else
+      " NOTE: early return!
+      return
+    endif
+  endif
+
+  if empty(marked)
+    return
+  endif
+
+  let choice = confirm(printf(
+        \ "%s\nwill be moved into: %s, continue?\n",
+        \ s:util.to_message_parts(marked),
+        \ destination),
+        \ "&Yes\n&No\n&Cancel\n&Quit",
+        \ 2)
+
+  if choice ==# 1
+    let failed = s:util.move_all(marked, destination)
+
+    if len(failed)
+      call confirm(printf(
+            \ "%s\ncould not be moved and will remain marked!\n",
+            \ s:util.to_message_parts(failed)))
+    endif
+
+    call b:root.sync()
+    call s:view.render()
+  endif
 endfunction
 
 function! treevial#unlink() abort
   let marked = b:root.list_actionable_marked()
 
-  if len(marked)
-    let choice = confirm(printf(
-          \ "%s\nwill be deleted, continue?\n",
-          \ s:util.to_message_parts(marked)),
-          \ "&Yes\n&No\n&Cancel\n&Quit",
-          \ 2)
+  if empty(marked)
+    let entry  = s:util.lnum_to_entry(line('.'))
+    let marked = s:util.is_entry(entry) ? [entry] : []
+  endif
 
-    " close confirm prompt before showing other
-    " potential echo's
-    redraw
+  let choice = confirm(printf(
+        \ "%s\nwill be deleted, continue?\n",
+        \ s:util.to_message_parts(marked)),
+        \ "&Yes\n&No\n&Cancel\n&Quit",
+        \ 2)
 
-    if choice ==# 1
-      let failed = s:util.delete_all(marked)
+  " close confirm prompt before showing other
+  " potential echo's
+  redraw
 
-      if len(failed)
-        call confirm(printf(
-              \ "%s\ncould not be removed and will remain marked!\n",
-              \ s:util.to_message_parts(failed)))
-      endif
+  if choice ==# 1
+    let failed = s:util.delete_all(marked)
 
-      call b:root.sync()
-      call s:view.render()
+    if len(failed)
+      call confirm(printf(
+            \ "%s\ncould not be removed and will remain marked!\n",
+            \ s:util.to_message_parts(failed)))
     endif
+
+    call b:root.sync()
+    call s:view.render()
   endif
 endfunction
 " }}}
@@ -144,18 +282,19 @@ function! s:view.buffer(...) abort
   nnoremap <silent><buffer> <C-x>   :call treevial#open({'command': 'spl'})<Cr>
   nnoremap <silent><buffer> <Tab>   :call treevial#mark()<Cr>
   nnoremap <silent><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
-  nnoremap <silent><buffer> !       :call treevial#unmark_all()<Cr><Esc>
+  nnoremap <silent><buffer> U       :call treevial#unmark_all()<Cr>
   nnoremap <silent><buffer> D       :call treevial#unlink()<Cr>
+  nnoremap <silent><buffer> M       :call treevial#move()<Cr>
 
   if s:is_nvim
     nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
-    nnoremap <silent><buffer> <Esc>  :call treevial#unmark_all()<Cr><Esc>
   endif
 
   if sync
     call b:root.sync()
-    call s:view.render()
   endif
+
+  call s:view.render()
 endfunction
 
 function! s:view.render() abort
@@ -251,6 +390,7 @@ function! s:entry.new(path, ...) abort
 
   return extend(deepcopy(s:entry), {
         \ 'name': substitute(path, root, '', '')[1:],
+        \ 'filename': get(split(path, '/'), -1, ''),
         \ 'path': path,
         \ 'is_dir': is_dir,
         \ 'is_open': 0,
@@ -330,6 +470,7 @@ function! s:entry.expand(...) abort dict
     if child_entry.path !=# result_entry.path
       call child_entry.update({
             \ 'name': substitute(result_entry.path, self.path, '', ''),
+            \ 'filename': result_entry.filename,
             \ 'path': result_entry.path,
             \ 'is_dir': result_entry.is_dir,
             \ '_children': []
@@ -471,6 +612,90 @@ function! s:util.to_message_parts(entries, ...) abort
   endif
 
   return message
+endfunction
+
+function! s:util.dirs_to_create(dirpath) abort
+  let existing_dir_path = '/'
+
+  for dirname in split(a:dirpath, '/')
+    let tmp_dir_path = existing_dir_path . dirname . '/'
+
+    if isdirectory(tmp_dir_path)
+      let existing_dir_path = tmp_dir_path
+    else
+      break
+    endif
+  endfor
+
+  let path_to_create = substitute(a:dirpath, existing_dir_path[:-2], '', '')
+
+  return [
+        \ get(split(path_to_create, '/'), 0, ''),
+        \ existing_dir_path[:-2]]
+endfunction
+
+function! s:util.duplicate_filenames(entries) abort
+  let duplicates = []
+  let filenames  = uniq(sort(map(copy(a:entries), 'v:val.filename')))
+
+  if len(filenames) < len(a:entries)
+    for filename in filenames
+      let same_named = filter(
+            \ copy(a:entries),
+            \ {_, entry -> entry.filename == filename})
+
+      if len(same_named) >? 1
+        call add(duplicates, [filename, same_named])
+      endif
+    endfor
+  endif
+
+  return duplicates
+endfunction
+
+function! s:util.move_all(entries, destination) abort
+  let failed_entries    = []
+  let destination       = substitute(a:destination, '\/\+$', '', '')
+  let [create, base] = s:util.dirs_to_create(destination)
+
+  if !empty(create)
+    let create_root = base . (base ==# '/' ? '' : '/') . create
+    call mkdir(create_root, 'p')
+
+    " unable to create destination directory, e.g. failed
+    " to move all files.
+    if !isdirectory(create_root)
+      return a:entries
+    endif
+  endif
+
+  for entry in a:entries
+    try
+      if rename(entry.path, destination . '/' . entry.filename) !=# 0
+        throw 1
+      endif
+    catch
+      call add(failed_entries, entry)
+    endtry
+  endfor
+
+  return failed_entries
+endfunction
+
+function! s:util.delete_all(entries) abort
+  let failed_entries = []
+
+  for entry in a:entries
+    try
+      if delete(entry.path, entry.is_dir ? 'rf' : '') ==# -1
+        throw 1
+      endif
+    catch
+      call add(failed_entries, entry)
+    endtry
+  endfor
+
+  return failed_entries
 endfunction
 " }}}
 
