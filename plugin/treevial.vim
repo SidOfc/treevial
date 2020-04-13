@@ -64,10 +64,6 @@ function! treevial#unmark_all() abort
   endif
 endfunction
 
-" this 159 line beast will need a refactor
-" some things to improve still:
-" - do not assume destination is in a directory
-" - less janky logic for marked_paths
 function! treevial#move() abort
   let selection = b:root.list_actionable()
 
@@ -76,14 +72,27 @@ function! treevial#move() abort
 
     return s:util.is_entry(entry)
           \ ? s:util.handle_move_single_entry(entry)
-          \ : s:util.notify_potential_bug()
+          \ : s:util.confirm_potential_bug()
   else
     return s:util.handle_move_multiple_entries(selection)
   endif
 endfunction
 
 function! s:util.handle_move_single_entry(entry) abort
-  return confirm('single entry: ' . a:entry.path . "\n")
+  let destination_path = input('destination: ', a:entry.path, 'dir')
+  let destination_dir  = fnamemodify(destination_path, ':h')
+
+  if !isdirectory(destination_dir)
+    call mkdir(destination_dir, 'p')
+
+    if !isdirectory(destination_dir)
+      return s:util.confirm({
+            \ 'message': 'aborting, unable to create "' . destination_dir . '"'
+            \ })
+    endif
+  endif
+
+  return confirm(destination_path)
 endfunction
 
 function! s:util.handle_move_multiple_entries(entries) abort
@@ -99,27 +108,25 @@ function! treevial#unlink() abort
     if s:util.is_entry(entry)
       let selection = [entry]
     else
-      return s:util.notify_potential_bug()
+      return s:util.confirm_potential_bug()
     endif
   endif
 
-  let choice = s:util.confirm_entries(
-        \ selection,
-        \ 'will be deleted, continue?',
-        \ "&No\n&Yes")
-
-  " close confirm prompt before showing other
-  " potential echo's
-  redraw
+  let choice = s:util.confirm({
+        \ 'entries': selection,
+        \ 'message': 'will be deleted, continue?',
+        \ 'choices': "&No\n&Yes"
+        \ })
 
   if choice ==# 2
     let failed = s:util.delete_all(selection)
 
     if len(failed)
-      call s:util.confirm_entries(
-            \ failed,
-            \ 'could not be removed and will remain marked!',
-            \ "&Ok")
+      call s:util.confirm({
+            \ 'entries': failed
+            \ 'message': 'could not be removed and will remain marked!',
+            \ 'choices': "&Ok"
+            \ })
     endif
 
     call b:root.sync()
@@ -210,7 +217,7 @@ function! s:view.render() abort
   call s:util.winrestview(saved_view)
 
   setlocal noma ro nomod
-  redraw!
+  mode
 endfunction
 " }}}
 
@@ -450,26 +457,6 @@ function! s:entry.has_marked_entries() abort dict
   return 0
 endfunction
 
-function! s:util.dirs_to_create(dirpath) abort
-  let existing_dir_path = '/'
-
-  for dirname in split(a:dirpath, '/')
-    let tmp_dir_path = existing_dir_path . dirname . '/'
-
-    if isdirectory(tmp_dir_path)
-      let existing_dir_path = tmp_dir_path
-    else
-      break
-    endif
-  endfor
-
-  let path_to_create = substitute(a:dirpath, existing_dir_path[:-2], '', '')
-
-  return [
-        \ get(split(path_to_create, '/'), 0, ''),
-        \ existing_dir_path[:-2]]
-endfunction
-
 function! s:util.duplicate_filenames(entries) abort
   let duplicates = []
   let filenames  = uniq(sort(map(copy(a:entries), 'v:val.filename')))
@@ -490,20 +477,8 @@ function! s:util.duplicate_filenames(entries) abort
 endfunction
 
 function! s:util.move_all(entries, destination) abort
-  let failed_entries    = []
-  let destination       = substitute(a:destination, '\/\+$', '', '')
-  let [create, base] = s:util.dirs_to_create(destination)
-
-  if !empty(create)
-    let create_root = base . (base ==# '/' ? '' : '/') . create
-    call mkdir(create_root, 'p')
-
-    " unable to create destination directory, e.g. failed
-    " to move all files.
-    if !isdirectory(create_root)
-      return a:entries
-    endif
-  endif
+  let failed_entries = []
+  let destination    = substitute(a:destination, '\/\+$', '', '')
 
   for entry in a:entries
     try
@@ -534,19 +509,32 @@ function! s:util.delete_all(entries) abort
   return failed_entries
 endfunction
 
-function! s:util.notify_potential_bug() abort
-  return confirm(printf(
-        \ "%s\n\n%s\n",
+function! s:util.confirm_potential_bug() abort
+  let message = printf(
+        \ "%s\n\n%s",
         \ 'aborting because this is probably a bug',
-        \ 'please open an issue on: https://github.com/sidofc/treevial/issues'))
+        \ 'please open an issue on: https://github.com/sidofc/treevial/issues')
+
+  return s:util.confirm({'message': message})
 endfunction
 
-function! s:util.confirm_entries(entries, msg, choices) abort
-  return confirm(printf(
-        \ "%s%s\n",
-        \ s:util.categorized_entries_message(a:entries),
-        \ a:msg),
-        \ a:choices)
+function s:util.confirm(overrides) abort
+  let options = extend(
+        \ deepcopy({'choices': '&Ok', 'entries': [], 'default': 1, 'message': 'Confirm'}),
+        \ a:overrides)
+
+  let choice = empty(options.entries)
+        \ ? confirm(printf("%s\n", options.message), options.choices, options.default)
+        \ : confirm(printf(
+        \   "%s%s\n",
+        \   s:util.categorized_entries_message(options.entries),
+        \   options.message),
+        \   options.choices,
+        \   options.default)
+
+  redraw!
+
+  return choice
 endfunction
 
 function! s:util.categorized_entries_message(entries) abort
