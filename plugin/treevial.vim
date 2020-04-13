@@ -215,12 +215,6 @@ endfunction
 " }}}
 
 " {{{ s:util helpers
-function! s:util.pluralize(word, count) abort
-  return a:word =~? 'y$'
-        \ ? a:count ==# 1 ? a:word : substitute(a:word, 'y$', 'ies', 'i')
-        \ : a:count ==# 1 ? a:word : a:word . 's'
-endfunction
-
 function! s:util.lnum_to_entry(lnum) abort
   return a:lnum >? 1 ? get(get(b:entries, a:lnum - 2, []), 0, 0) : 0
 endfunction
@@ -456,44 +450,6 @@ function! s:entry.has_marked_entries() abort dict
   return 0
 endfunction
 
-function! s:util.split_files_and_dirs(entries)
-  let files = []
-  let dirs  = []
-
-  for entry in a:entries
-    call add(entry.is_dir ? dirs : files, entry)
-  endfor
-
-  return [files, dirs]
-endfunction
-
-function! s:util.to_message_parts(entries, ...) abort
-  let [files, dirs] = s:util.split_files_and_dirs(a:entries)
-  let files_len     = len(files)
-  let dirs_len      = len(dirs)
-  let message       = ''
-
-  if files_len
-    let message .= printf(
-          \ "%d %s:\n%s\n",
-          \ files_len,
-          \ s:util.pluralize('file', files_len),
-          \ join(map(copy(files), '"  " . v:val.path'), "\n"))
-  endif
-
-  let message .= files_len && dirs_len ? "\nand " : ""
-
-  if dirs_len
-    let message .= printf(
-          \ "%d %s:\n%s\n",
-          \ dirs_len,
-          \ s:util.pluralize('directory', dirs_len),
-          \ join(map(copy(dirs), '"  " . v:val.path'), "\n"))
-  endif
-
-  return message
-endfunction
-
 function! s:util.dirs_to_create(dirpath) abort
   let existing_dir_path = '/'
 
@@ -587,10 +543,55 @@ endfunction
 
 function! s:util.confirm_entries(entries, msg, choices) abort
   return confirm(printf(
-        \ "%s\n%s\n",
-        \ s:util.to_message_parts(a:entries),
+        \ "%s%s\n",
+        \ s:util.categorized_entries_message(a:entries),
         \ a:msg),
         \ a:choices)
+endfunction
+
+function! s:util.categorized_entries_message(entries) abort
+  let message    = ''
+  let categories = type(a:entries) == type({})
+        \ ? a:entries
+        \ : s:util.split_files_and_dirs(a:entries)
+
+  for [category, entries] in items(categories)
+    let entries_length = len(entries)
+    if entries_length
+      let message .= printf(
+            \ "%d %s:\n%s\n\n",
+            \ entries_length,
+            \ s:util.pluralize(category, entries_length),
+            \ join(map(copy(entries), '"  " . v:val.path'), "\n"))
+    endif
+  endfor
+
+  return message
+endfunction
+
+function! s:util.split_files_and_dirs(entries)
+  let files_and_dirs = {'files': [], 'directories': []}
+
+  for entry in a:entries
+    let category = entry.is_dir ? 'directories' : 'files'
+    call add(files_and_dirs[category], entry)
+  endfor
+
+  return files_and_dirs
+endfunction
+
+function! s:util.pluralize(word, count) abort
+  let singular = substitute(a:word, 'ies$', 'y', '')
+  let singular = substitute(singular, 's$', '', '')
+
+  if a:count ==# 1
+    return singular
+  else
+    let plural  = substitute(singular, 'y$', 'ies', '')
+    let plural .= (plural =~? 's' ? '' : 's')
+
+    return plural
+  endif
 endfunction
 " }}}
 
