@@ -368,6 +368,7 @@ function! s:entry.open(...) abort dict
   let options = get(a:, 1, {})
 
   exe get(options, 'command', 'edit') fnameescape(self.path)
+  call clearmatches()
 endfunction
 
 function! s:entry.toggle(...) abort dict
