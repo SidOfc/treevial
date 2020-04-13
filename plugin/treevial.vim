@@ -66,7 +66,8 @@ endfunction
 
 " this 159 line beast will need a refactor
 " some things to improve still:
-" - allow user to choose to overwrite existing files
+" - do not assume destination is in a directory
+" - less janky logic for marked_paths
 function! treevial#move() abort
   let marked = b:root.list_actionable_marked()
 
@@ -90,9 +91,9 @@ function! treevial#move() abort
         let choice = confirm(printf(
               \ "unable to move '%s' into itself, what would you like to do?\n",
               \ destination),
-              \ "&Unmark\n&Cancel\n&Quit")
+              \ "&Cancel\n&Unmark")
 
-        if choice ==# 1
+        if choice ==# 2
           call entry.mark(0)
           call entry.mark_children()
 
@@ -121,45 +122,6 @@ function! treevial#move() abort
     endif
   endif
 
-  let dest_filenames = map(s:entry.new(destination).children(), 'v:val.filename')
-  let found_in_dest  = filter(
-        \ copy(marked),
-        \ {_, entry -> index(dest_filenames, entry.filename) >? -1})
-
-  if !empty(found_in_dest)
-    if len(marked) ==# 1 && !marked[0].is_marked
-      call confirm(printf(
-            \ "unable to move '%s' into '%s'\n\na file with the same name already exists\n",
-            \ marked[0].name,
-            \ destination))
-
-      " NOTE: early return!
-      return
-    else
-      let choice = confirm(printf(
-            \ "%s\nalready exist in: %s, what would you like to do?\n",
-            \ s:util.to_message_parts(found_in_dest),
-            \ destination),
-            \ "&Unmark existing\n&Cancel\n&Quit",
-            \ 2)
-
-      if choice ==# 1
-        for existing in found_in_dest
-          call existing.mark(0)
-          call existing.mark_children()
-        endfor
-
-        call filter(marked, 'v:val.is_marked')
-        call s:view.render()
-      else
-        " NOTE: early return
-        return
-      endif
-    endif
-  endif
-
-  " need to also check for existing files in destination directory
-  " aside from checking duplicates like below
   let duplicates = s:util.duplicate_filenames(marked)
 
   if !empty(duplicates)
@@ -172,9 +134,9 @@ function! treevial#move() abort
     endfor
 
     let msg    .= "what would you like to do?\n"
-    let choice  = confirm(msg, "&Unmark duplicates\n&Cancel&Quit")
+    let choice  = confirm(msg, "&Cancel\n&Unmark duplicates")
 
-    if choice ==# 1
+    if choice ==# 2
       for [_, dupes] in duplicates
         for dupe in dupes[1:]
           call dupe.mark(0)
@@ -190,6 +152,49 @@ function! treevial#move() abort
     endif
   endif
 
+  let dest_filenames = map(s:entry.new(destination).children(), 'v:val.filename')
+  let found_in_dest  = filter(
+        \ copy(marked),
+        \ {_, entry -> index(dest_filenames, entry.filename) >? -1})
+
+  if !empty(found_in_dest)
+    if len(marked) ==# 1 && !marked[0].is_marked
+      let choice = confirm(printf(
+            \ "destination %s/%s already exists, overwrite?\n",
+            \ destination,
+            \ marked[0].name),
+            \ "&Cancel\n&Overwrite")
+
+      if choice -=# 2
+        mode
+      else
+        " NOTE: early return!
+        return
+      endif
+    else
+      let choice = confirm(printf(
+            \ "%s\nalready exist in: %s, what would you like to do?\n",
+            \ s:util.to_message_parts(found_in_dest),
+            \ destination),
+            \ "&Cancel\n&Unmark existing\n&Overwrite existing")
+
+      if choice ==# 2
+        for existing in found_in_dest
+          call existing.mark(0)
+          call existing.mark_children()
+        endfor
+
+        call filter(marked, 'v:val.is_marked')
+        call s:view.render()
+      elseif choice ==# 3
+        mode
+      else
+        " NOTE: early return
+        return
+      endif
+    endif
+  endif
+
   if empty(marked)
     return
   endif
@@ -198,10 +203,9 @@ function! treevial#move() abort
         \ "%s\nwill be moved into: %s, continue?\n",
         \ s:util.to_message_parts(marked),
         \ destination),
-        \ "&Yes\n&No\n&Cancel\n&Quit",
-        \ 2)
+        \ "&No\n&Yes")
 
-  if choice ==# 1
+  if choice ==# 2
     let failed = s:util.move_all(marked, destination)
 
     if len(failed)
@@ -226,14 +230,13 @@ function! treevial#unlink() abort
   let choice = confirm(printf(
         \ "%s\nwill be deleted, continue?\n",
         \ s:util.to_message_parts(marked)),
-        \ "&Yes\n&No\n&Cancel\n&Quit",
-        \ 2)
+        \ "&No\n&Yes")
 
   " close confirm prompt before showing other
   " potential echo's
   redraw
 
-  if choice ==# 1
+  if choice ==# 2
     let failed = s:util.delete_all(marked)
 
     if len(failed)
@@ -330,7 +333,7 @@ function! s:view.render() abort
   call s:util.winrestview(saved_view)
 
   setlocal noma ro nomod
-  redraw
+  redraw!
 endfunction
 " }}}
 
