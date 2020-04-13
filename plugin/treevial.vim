@@ -69,167 +69,43 @@ endfunction
 " - do not assume destination is in a directory
 " - less janky logic for marked_paths
 function! treevial#move() abort
-  let marked = b:root.list_actionable_marked()
+  let selection = b:root.list_actionable()
 
-  if empty(marked)
-    let entry  = s:util.lnum_to_entry(line('.'))
-    let marked = s:util.is_entry(entry) ? [entry] : []
-  endif
+  if len(selection) <? 2
+    let entry = get(selection, 0, s:util.lnum_to_entry(line('.')))
 
-  let destination  = input('destination: ', b:root.path, 'dir')
-  let marked_paths = map(copy(marked), 'v:val.path')
-  let dest_dir_idx = index(marked_paths, destination . '/')
-
-  " erase remaining text by clearing the screen
-  " before asking for confirmation
-  mode
-
-  if dest_dir_idx >? -1
-    let entry = get(marked, dest_dir_idx, 0)
-    if s:util.is_entry(entry)
-      if entry.is_marked
-        let choice = confirm(printf(
-              \ "unable to move '%s' into itself, what would you like to do?\n",
-              \ destination),
-              \ "&Cancel\n&Unmark")
-
-        if choice ==# 2
-          call entry.mark(0)
-          call entry.mark_children()
-
-          call filter(marked, 'v:val.is_marked')
-          call s:view.render()
-        else
-          " NOTE: early return!
-          return
-        endif
-      else
-        call confirm(printf(
-              \ "unable to move '%s' into itself\n",
-              \ entry.path))
-
-        " NOTE: early return!
-        return
-      endif
-    else
-      call confirm(printf(
-            \ "%s\n\n%s\n",
-            \ 'aborting because this is probably a bug',
-            \ 'please open an issue on: https://github.com/sidofc/treevial/issues'))
-
-      " NOTE: early return!
-      return
-    endif
-  endif
-
-  let duplicates = s:util.duplicate_filenames(marked)
-
-  if !empty(duplicates)
-    let msg = "the following files / directories have identical names and will not be moved!\n\n"
-
-    for [filename, dupes] in duplicates
-      let msg .= printf("%s\n%s\n\n",
-            \ filename,
-            \ join(map(copy(dupes), '"  " . v:val.path'), "\n"))
-    endfor
-
-    let msg    .= "what would you like to do?\n"
-    let choice  = confirm(msg, "&Cancel\n&Unmark duplicates")
-
-    if choice ==# 2
-      for [_, dupes] in duplicates
-        for dupe in dupes[1:]
-          call dupe.mark(0)
-          call dupe.mark_children()
-        endfor
-      endfor
-
-      call filter(marked, 'v:val.is_marked')
-      call s:view.render()
-    else
-      " NOTE: early return!
-      return
-    endif
-  endif
-
-  let dest_filenames = map(s:entry.new(destination).children(), 'v:val.filename')
-  let found_in_dest  = filter(
-        \ copy(marked),
-        \ {_, entry -> index(dest_filenames, entry.filename) >? -1})
-
-  if !empty(found_in_dest)
-    if len(marked) ==# 1 && !marked[0].is_marked
-      let choice = confirm(printf(
-            \ "destination %s/%s already exists, overwrite?\n",
-            \ destination,
-            \ marked[0].filename),
-            \ "&Cancel\n&Overwrite")
-
-      if choice ==# 2
-        mode
-      else
-        " NOTE: early return!
-        return
-      endif
-    else
-      let choice = confirm(printf(
-            \ "%s\nalready exist in: %s, what would you like to do?\n",
-            \ s:util.to_message_parts(found_in_dest),
-            \ destination),
-            \ "&Cancel\n&Unmark existing\n&Overwrite existing")
-
-      if choice ==# 2
-        for existing in found_in_dest
-          call existing.mark(0)
-          call existing.mark_children()
-        endfor
-
-        call filter(marked, 'v:val.is_marked')
-        call s:view.render()
-      elseif choice ==# 3
-        mode
-      else
-        " NOTE: early return
-        return
-      endif
-    endif
-  endif
-
-  if empty(marked)
-    return
-  endif
-
-  let choice = confirm(printf(
-        \ "%s\nwill be moved into: %s, continue?\n",
-        \ s:util.to_message_parts(marked),
-        \ destination),
-        \ "&No\n&Yes")
-
-  if choice ==# 2
-    let failed = s:util.move_all(marked, destination)
-
-    if len(failed)
-      call confirm(printf(
-            \ "%s\ncould not be moved and will remain marked!\n",
-            \ s:util.to_message_parts(failed)))
-    endif
-
-    call b:root.sync()
-    call s:view.render()
+    return s:util.is_entry(entry)
+          \ ? s:util.handle_move_single_entry(entry)
+          \ : s:util.notify_potential_bug()
+  else
+    return s:util.handle_move_multiple_entries(selection)
   endif
 endfunction
 
-function! treevial#unlink() abort
-  let marked = b:root.list_actionable_marked()
+function! s:util.handle_move_single_entry(entry) abort
+  return confirm('single entry: ' . a:entry.path . "\n")
+endfunction
 
-  if empty(marked)
-    let entry  = s:util.lnum_to_entry(line('.'))
-    let marked = s:util.is_entry(entry) ? [entry] : []
+function! s:util.handle_move_multiple_entries(entries) abort
+  return confirm('multiple entries: ' . string(map(copy(a:entries), 'v:val.path')) . "\n")
+endfunction
+
+function! treevial#unlink() abort
+  let selection = b:root.list_actionable()
+
+  if empty(selection)
+    let entry = s:util.lnum_to_entry(line('.'))
+
+    if s:util.is_entry(entry)
+      let selection = [entry]
+    else
+      return s:util.notify_potential_bug()
+    endif
   endif
 
-  let choice = confirm(printf(
-        \ "%s\nwill be deleted, continue?\n",
-        \ s:util.to_message_parts(marked)),
+  let choice = s:util.confirm_entries(
+        \ selection,
+        \ 'will be deleted, continue?',
         \ "&No\n&Yes")
 
   " close confirm prompt before showing other
@@ -237,12 +113,13 @@ function! treevial#unlink() abort
   redraw
 
   if choice ==# 2
-    let failed = s:util.delete_all(marked)
+    let failed = s:util.delete_all(selection)
 
     if len(failed)
-      call confirm(printf(
-            \ "%s\ncould not be removed and will remain marked!\n",
-            \ s:util.to_message_parts(failed)))
+      call s:util.confirm_entries(
+            \ failed,
+            \ 'could not be removed and will remain marked!',
+            \ "&Ok")
     endif
 
     call b:root.sync()
@@ -555,14 +432,14 @@ function! s:entry.synchronize_with(previous) abort dict
   return self
 endfunction
 
-function! s:entry.list_actionable_marked() abort dict
+function! s:entry.list_actionable() abort dict
   let marked = []
 
   for child_entry in self.fetched_children()
     if child_entry.is_marked
       call add(marked, child_entry)
     else
-      call extend(marked, child_entry.list_actionable_marked())
+      call extend(marked, child_entry.list_actionable())
     endif
   endfor
 
@@ -699,6 +576,21 @@ function! s:util.delete_all(entries) abort
   endfor
 
   return failed_entries
+endfunction
+
+function! s:util.notify_potential_bug() abort
+  return confirm(printf(
+        \ "%s\n\n%s\n",
+        \ 'aborting because this is probably a bug',
+        \ 'please open an issue on: https://github.com/sidofc/treevial/issues'))
+endfunction
+
+function! s:util.confirm_entries(entries, msg, choices) abort
+  return confirm(printf(
+        \ "%s\n%s\n",
+        \ s:util.to_message_parts(a:entries),
+        \ a:msg),
+        \ a:choices)
 endfunction
 " }}}
 
