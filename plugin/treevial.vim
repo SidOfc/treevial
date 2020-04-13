@@ -78,25 +78,105 @@ function! treevial#move() abort
   endif
 endfunction
 
-function! s:util.handle_move_single_entry(entry) abort
-  let destination_path = input('destination: ', a:entry.path, 'dir')
-  let destination_dir  = fnamemodify(destination_path, ':h')
+function! s:util.mkdir_removable(path) abort
+  let parts   = split(a:path, '/')
+  let path    = join(parts, '/')
+  let current = ''
 
-  if !isdirectory(destination_dir)
-    call mkdir(destination_dir, 'p')
+  for dirname in parts
+    let current .= '/' . dirname
 
-    if !isdirectory(destination_dir)
-      return s:util.confirm({
-            \ 'message': 'aborting, unable to create "' . destination_dir . '"'
-            \ })
+    if !isdirectory(current)
+      break
     endif
+  endfor
+
+  return isdirectory(current) ? '' : current
+endfunction
+
+function! s:util.handle_move_single_entry(entry) abort
+  let dest_input       = substitute(input('destination: ', a:entry.path, 'dir'), '\/$', '', '')
+  let entry_path       = substitute(a:entry.path, '\/$', '', '')
+  let dest_path        = expand(dest_input)
+  let overwrite_parent = entry_path =~? '^' . dest_path && isdirectory(dest_path)
+  let move_into_self   = dest_path =~? '^' . a:entry.path
+  let dest_exists      = isdirectory(dest_path) || filereadable(dest_path)
+  let dest_parent      = fnamemodify(dest_path, ':h')
+
+  mode
+
+  " return s:util.debug(
+  "       \ 'entry_path:         ' . entry_path,
+  "       \ 'dest_path:          ' . dest_path,
+  "       \ 'dest_parent:        ' . dest_parent,
+  "       \ 'mkdir_removable:    ' . s:util.mkdir_removable(dest_parent),
+  "       \ 'move_into_self:     ' . string(move_into_self),
+  "       \ 'dest_exists:        ' . string(dest_exists),
+  "       \ 'overwrite_parent:   ' . string(overwrite_parent))
+
+  if empty(dest_path) || entry_path == dest_path
+    return
+  elseif overwrite_parent
+    return s:util.confirm({'message': 'unable to overwrite parent directory'})
+  elseif move_into_self
+    return s:util.confirm({
+          \ 'message': 'files and directories can not be moved into themselves'})
+  elseif dest_exists
+    let choice = s:util.confirm({
+          \ 'message': join(['destination "' . dest_path . '" already exists,',
+          \                  "what would you like to do?"], "\n\n"),
+          \ 'choices': "&Cancel\n&Overwrite"
+          \ })
+
+    if choice !=? 2
+      return
+    endif
+  elseif !isdirectory(dest_parent)
+    try
+      call mkdir(dest_parent, 'p')
+      if !isdirectory(dest_parent)
+        call s:util.confirm({'message': 'failed to create "' . dest_parent . '"'})
+        throw 1
+      endif
+    catch
+      let removable = s:util.nonexisting_tail(dest_parent)
+
+      if empty(removable)
+        return s:util.confirm_potential_bug()
+      else
+        try
+          if delete(removable, 'rf') !=? 0 || isdirectory(removable)
+            throw 1
+          endif
+        catch
+          return s:util.confirm({'message': 'failed to remove "' . removable . '"'})
+        endtry
+      endif
+    endtry
   endif
 
-  return confirm(destination_path)
+  if rename(entry_path, dest_path) !=? 0
+    return s:util.confirm({
+          \ 'entries': [['rename', [{'path': entry_path}]],
+          \             ['to',     [{'path': dest_path}]]],
+          \ 'message': 'failed, press <ENTER> to continue'})
+  endif
+
+  call b:root.sync()
+  call s:view.render()
+endfunction
+
+function! s:util.debug(...) abort
+  return s:util.confirm({'message': '', 'entries': [
+        \ ['debug', map(copy(a:000), "{'path': v:val}")]]
+        \ })
 endfunction
 
 function! s:util.handle_move_multiple_entries(entries) abort
-  return confirm('multiple entries: ' . string(map(copy(a:entries), 'v:val.path')) . "\n")
+  return s:util.confirm({
+        \ 'entries': a:entries,
+        \ 'message': 'selected'
+        \ })
 endfunction
 
 function! treevial#unlink() abort
@@ -354,7 +434,7 @@ function! s:entry.expand(...) abort dict
             \ 'filename': result_entry.filename,
             \ 'path': result_entry.path,
             \ 'is_dir': result_entry.is_dir,
-            \ '_children': []
+            \ '_children': result_entry.fetched_children()
             \ })
     endif
   endfor
@@ -539,18 +619,23 @@ endfunction
 
 function! s:util.categorized_entries_message(entries) abort
   let message    = ''
-  let categories = type(a:entries) == type({})
+  let own_cats   = type(get(a:entries, 0, {})) == type([])
+  let categories = own_cats
         \ ? a:entries
         \ : s:util.split_files_and_dirs(a:entries)
 
-  for [category, entries] in items(categories)
-    let entries_length = len(entries)
+  for [category, category_entries] in categories
+    let entries_length = len(category_entries)
+
     if entries_length
-      let message .= printf(
-            \ "%d %s:\n%s\n\n",
-            \ entries_length,
-            \ s:util.pluralize(category, entries_length),
-            \ join(map(copy(entries), '"  " . v:val.path'), "\n"))
+      let joined_paths  = join(map(copy(category_entries), '"  " . v:val.path'), "\n")
+      let message      .= own_cats
+            \ ? printf("%s:\n%s\n\n", category, joined_paths)
+            \ : printf(
+            \   "%d %s:\n%s\n\n",
+            \   entries_length,
+            \   s:util.pluralize(category, entries_length),
+            \   joined_paths)
     endif
   endfor
 
@@ -558,14 +643,14 @@ function! s:util.categorized_entries_message(entries) abort
 endfunction
 
 function! s:util.split_files_and_dirs(entries)
-  let files_and_dirs = {'files': [], 'directories': []}
+  let files       = []
+  let directories = []
 
   for entry in a:entries
-    let category = entry.is_dir ? 'directories' : 'files'
-    call add(files_and_dirs[category], entry)
+    call add(entry.is_dir ? directories : files, entry)
   endfor
 
-  return files_and_dirs
+  return [['files', files], ['directories', directories]]
 endfunction
 
 function! s:util.pluralize(word, count) abort
