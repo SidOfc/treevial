@@ -162,10 +162,10 @@ function! treevial#move() abort
       let choice = confirm(printf(
             \ "destination %s/%s already exists, overwrite?\n",
             \ destination,
-            \ marked[0].name),
+            \ marked[0].filename),
             \ "&Cancel\n&Overwrite")
 
-      if choice -=# 2
+      if choice ==# 2
         mode
       else
         " NOTE: early return!
