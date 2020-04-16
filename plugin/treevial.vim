@@ -94,14 +94,34 @@ function! s:util.mkdir_removable(path) abort
   return isdirectory(current) ? '' : current
 endfunction
 
+function s:util.validate_move(from, to) abort
+  let from = substitute(a:from, '\/$', '', '')
+  let to = substitute(a:to, '\/$', '', '')
+
+  return {
+        \ 'overwrite_parent': from =~? '^' . to && isdirectory(to),
+        \ 'move_into_self': to =~? '^' . from . '/',
+        \ 'noop': to ==? from,
+        \ 'dest_exists': isdirectory(to) || filereadable(to)
+        \ }
+endfunction
+
+function! s:util.handle_move_multiple_entries(entries) abort
+  let dest_path = expand(substitute(input('directory: ', b:root.path, 'dir'), '\/$', '', ''))
+
+  mode
+
+  return s:util.confirm({
+        \ 'entries': a:entries,
+        \ 'message': 'selected'
+        \ })
+endfunction
+
 function! s:util.handle_move_single_entry(entry) abort
-  let dest_input       = substitute(input('destination: ', a:entry.path, 'dir'), '\/$', '', '')
-  let entry_path       = substitute(a:entry.path, '\/$', '', '')
-  let dest_path        = expand(dest_input)
-  let overwrite_parent = entry_path =~? '^' . dest_path && isdirectory(dest_path)
-  let move_into_self   = dest_path =~? '^' . a:entry.path
-  let dest_exists      = isdirectory(dest_path) || filereadable(dest_path)
-  let dest_parent      = fnamemodify(dest_path, ':h')
+  let dest_path   = expand(substitute(input('destination: ', a:entry.path, 'dir'), '\/$', '', ''))
+  let dest_parent = fnamemodify(dest_path, ':h')
+  let entry_path  = substitute(a:entry.path, '\/$', '', '')
+  let errors      = s:util.validate_move(entry_path, dest_path)
 
   mode
 
@@ -110,18 +130,17 @@ function! s:util.handle_move_single_entry(entry) abort
   "       \ 'dest_path:          ' . dest_path,
   "       \ 'dest_parent:        ' . dest_parent,
   "       \ 'mkdir_removable:    ' . s:util.mkdir_removable(dest_parent),
-  "       \ 'move_into_self:     ' . string(move_into_self),
-  "       \ 'dest_exists:        ' . string(dest_exists),
-  "       \ 'overwrite_parent:   ' . string(overwrite_parent))
+  "       \ 'move_into_self:     ' . string(errors.move_into_self),
+  "       \ 'dest_exists:        ' . string(errors.dest_exists),
+  "       \ 'overwrite_parent:   ' . string(errors.overwrite_parent))
 
-  if empty(dest_path) || entry_path == dest_path
+  if errors.noop
     return
-  elseif overwrite_parent
-    return s:util.confirm({'message': 'unable to overwrite parent directory'})
-  elseif move_into_self
-    return s:util.confirm({
-          \ 'message': 'files and directories can not be moved into themselves'})
-  elseif dest_exists
+  elseif errors.overwrite_parent
+    return s:util.confirm('unable to overwrite parent directory')
+  elseif errors.move_into_self
+    return s:util.confirm('files and directories can not be moved into themselves')
+  elseif errors.dest_exists
     let choice = s:util.confirm({
           \ 'message': join(['destination "' . dest_path . '" already exists,',
           \                  "what would you like to do?"], "\n\n"),
@@ -135,7 +154,7 @@ function! s:util.handle_move_single_entry(entry) abort
     try
       call mkdir(dest_parent, 'p')
       if !isdirectory(dest_parent)
-        call s:util.confirm({'message': 'failed to create "' . dest_parent . '"'})
+        call s:util.confirm('failed to create "' . dest_parent . '"')
         throw 1
       endif
     catch
@@ -149,7 +168,7 @@ function! s:util.handle_move_single_entry(entry) abort
             throw 1
           endif
         catch
-          return s:util.confirm({'message': 'failed to remove "' . removable . '"'})
+          return s:util.confirm('failed to remove "' . removable . '"')
         endtry
       endif
     endtry
@@ -169,13 +188,6 @@ endfunction
 function! s:util.debug(...) abort
   return s:util.confirm({'message': '', 'entries': [
         \ ['debug', map(copy(a:000), "{'path': v:val}")]]
-        \ })
-endfunction
-
-function! s:util.handle_move_multiple_entries(entries) abort
-  return s:util.confirm({
-        \ 'entries': a:entries,
-        \ 'message': 'selected'
         \ })
 endfunction
 
@@ -591,18 +603,17 @@ function! s:util.delete_all(entries) abort
 endfunction
 
 function! s:util.confirm_potential_bug() abort
-  let message = printf(
+  return s:util.confirm(printf(
         \ "%s\n\n%s",
         \ 'aborting because this is probably a bug',
-        \ 'please open an issue on: https://github.com/sidofc/treevial/issues')
-
-  return s:util.confirm({'message': message})
+        \ 'please open an issue on: https://github.com/sidofc/treevial/issues'))
 endfunction
 
 function s:util.confirm(overrides) abort
+  let overrides = type(a:overrides) ==? type('') ? {'message': a:overrides} : a:overrides
   let options = extend(
         \ deepcopy({'choices': '&Ok', 'entries': [], 'default': 1, 'message': 'Confirm'}),
-        \ a:overrides)
+        \ overrides)
 
   let choice = empty(options.entries)
         \ ? confirm(printf("%s\n", options.message), options.choices, options.default)
