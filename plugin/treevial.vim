@@ -96,7 +96,7 @@ endfunction
 
 function s:util.validate_move(from, to) abort
   let from = substitute(a:from, '\/$', '', '')
-  let to = substitute(a:to, '\/$', '', '')
+  let to   = substitute(a:to, '\/$', '', '')
 
   return {
         \ 'overwrite_parent': from =~? '^' . to && isdirectory(to),
@@ -151,27 +151,9 @@ function! s:util.handle_move_single_entry(entry) abort
       return
     endif
   elseif !isdirectory(dest_parent)
-    try
-      call mkdir(dest_parent, 'p')
-      if !isdirectory(dest_parent)
-        call s:util.confirm('failed to create "' . dest_parent . '"')
-        throw 1
-      endif
-    catch
-      let removable = s:util.nonexisting_tail(dest_parent)
-
-      if empty(removable)
-        return s:util.confirm_potential_bug()
-      else
-        try
-          if delete(removable, 'rf') !=? 0 || isdirectory(removable)
-            throw 1
-          endif
-        catch
-          return s:util.confirm('failed to remove "' . removable . '"')
-        endtry
-      endif
-    endtry
+    if !s:util.mkdirp(dest_parent)
+      return
+    endif
   endif
 
   if rename(entry_path, dest_path) !=? 0
@@ -183,6 +165,19 @@ function! s:util.handle_move_single_entry(entry) abort
 
   call b:root.sync()
   call s:view.render()
+endfunction
+
+function! s:util.mkdirp(path) abort
+  try
+    call mkdir(a:path, 'p')
+  finally
+    if isdirectory(a:path)
+      return 1
+    else
+      call s:util.confirm('failed to create "' . a:path . '"')
+      return 0
+    endif
+  endtry
 endfunction
 
 function! s:util.debug(...) abort
