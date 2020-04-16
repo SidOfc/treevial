@@ -106,14 +106,71 @@ function s:util.validate_move(from, to) abort
         \ }
 endfunction
 
+function! s:util.to_dict(listlist) abort
+  let dict = {}
+
+  for [key, value] in a:listlist
+    let dict[key] = value
+  endfor
+
+  return dict
+endfunction
+
 function! s:util.handle_move_multiple_entries(entries) abort
-  let dest_path = expand(substitute(input('directory: ', b:root.path, 'dir'), '\/$', '', ''))
+  let entry_filenames      = uniq(sort(map(copy(a:entries), 'v:val.filename')))
+  let entry_filename_table = s:util.to_dict(map(copy(entry_filenames), '[v:val, []]'))
+  let dest_path            = expand(
+        \ substitute(input('directory: ', b:root.path, 'dir'), '\/$', '', ''))
+
+  mode
+
+  for entry in a:entries
+    call add(entry_filename_table[entry.filename], entry)
+  endfor
+
+  call filter(entry_filename_table, 'len(v:val) >? 1')
+
+  if !empty(entry_filename_table)
+    let choice = s:util.confirm({
+          \ 'entries': items(entry_filename_table),
+          \ 'message': 'unable to copy multiple files with the same name,'
+          \          . ' what would you like to do?',
+          \ 'choices': "&Cancel\n&Unmark duplicates"
+          \ })
+
+    if choice ==? 2
+      for [_, entries] in items(entry_filename_table)
+        for entry in entries[1:]
+          call entry.mark()
+          call entry.mark_children()
+        endfor
+      endfor
+    endif
+
+    call s:view.render()
+  endif
+
+  echom choice
+  return choice
+
+  if !isdirectory(dest_path) && !s:util.mkdirp(dest_path)
+    return
+  endif
+
+  let dest_entry      = s:entry.new(dest_path)
+  let dest_filenames  = map(dest_entry.children(), 'v:val.filename')
+  let entry_conflicts = filter(
+        \ copy(a:entries),
+        \ {_ ,entry -> index(entry_filen)})
+  let would_overwrite = filter(
+        \ copy(a:entries),
+        \ {_, entry -> index(dest_filenames, entry.filename) >? -1})
 
   mode
 
   return s:util.confirm({
-        \ 'entries': a:entries,
-        \ 'message': 'selected'
+        \ 'entries': would_overwrite,
+        \ 'message': 'would_overwrite'
         \ })
 endfunction
 
