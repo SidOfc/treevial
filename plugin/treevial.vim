@@ -73,200 +73,6 @@ function! treevial#move() abort
   endif
 endfunction
 
-function! s:util.mkdir_removable(path) abort
-  let parts   = split(a:path, '/')
-  let path    = join(parts, '/')
-  let current = ''
-
-  for dirname in parts
-    let current .= '/' . dirname
-
-    if !isdirectory(current)
-      break
-    endif
-  endfor
-
-  return isdirectory(current) ? '' : current
-endfunction
-
-function s:util.validate_move(from, to) abort
-  let from = substitute(a:from, '\/$', '', '')
-  let to   = substitute(a:to, '\/$', '', '')
-
-  return {
-        \ 'overwrite_parent': from =~? '^' . to && isdirectory(to),
-        \ 'move_into_self': to =~? '^' . from . '/',
-        \ 'noop': to ==? from || empty(to) || empty(from),
-        \ 'dest_exists': isdirectory(to) || filereadable(to)
-        \ }
-endfunction
-
-function! s:util.to_dict(listlist) abort
-  let dict = {}
-
-  for [key, value] in a:listlist
-    let dict[key] = value
-  endfor
-
-  return dict
-endfunction
-
-function! s:util.handle_move_multiple_entries(entries) abort
-  let entries              = copy(a:entries)
-  let entry_filenames      = uniq(sort(map(copy(entries), 'v:val.filename')))
-  let entry_filename_table = s:util.to_dict(map(copy(entry_filenames), '[v:val, []]'))
-  let dest_path            = expand(
-        \ substitute(input('directory: ', b:root.path, 'dir'), '\/$', '', ''))
-
-  mode
-
-  for entry in entries
-    call add(entry_filename_table[entry.filename], entry)
-  endfor
-
-  call filter(entry_filename_table, 'len(v:val) >? 1')
-
-  if !empty(entry_filename_table)
-    let choice = s:util.confirm({
-          \ 'entries': items(entry_filename_table),
-          \ 'message': 'unable to copy multiple files with the same name,'
-          \          . ' what would you like to do?',
-          \ 'choices': "&Cancel\n&Unmark duplicates"
-          \ })
-
-    if choice ==? 2
-      for [_, entries] in items(entry_filename_table)
-        for entry in entries[1:]
-          call entry.mark()
-          call entry.mark_children()
-        endfor
-      endfor
-
-      call filter(entries, 'v:val.is_marked')
-      call s:view.render()
-    else
-      return
-    endif
-  endif
-
-  if !isdirectory(dest_path) && !s:util.mkdirp(dest_path)
-    return
-  endif
-
-  let dest_entry      = s:entry.new(dest_path)
-  let dest_filenames  = map(dest_entry.children(), 'tolower(v:val.filename)')
-  let would_overwrite = filter(
-        \ copy(entries),
-        \ {_, entry -> index(dest_filenames, tolower(entry.filename)) >? -1})
-
-  mode
-
-  if !empty(would_overwrite)
-    let choice = s:util.confirm({
-          \ 'entries': would_overwrite,
-          \ 'message': 'will overwrite a file or directory in "' . dest_path . '"',
-          \ 'choices': "&Cancel\n&Overwrite\n&Unmark"
-          \ })
-
-    if choice ==? 3
-      for entry in would_overwrite
-        entry.mark(0)
-        entry.mark_children()
-      endfor
-
-      call filter(entries, 'v:val.is_marked')
-    elseif choice !=? 2
-      return
-    endif
-  endif
-
-  for marked in entries
-    call s:util.handle_move_single_entry(
-          \ marked,
-          \ {'destination': dest_path . '/' . marked.filename,
-          \  'resync': 0})
-  endfor
-
-  call b:root.sync()
-  call s:view.render()
-endfunction
-
-function! s:util.handle_move_single_entry(entry, ...) abort
-  let options     = get(a:, 1, {})
-  let resync      = get(options, 'resync', 1)
-  let dest_path   = get(options, 'destination', '')
-  let dest_parent = fnamemodify(dest_path, ':h')
-  let entry_path  = substitute(a:entry.path, '\/$', '', '')
-  let errors      = s:util.validate_move(entry_path, dest_path)
-
-  if empty(dest_path)
-    let dest_path = expand(substitute(input('destination: ', a:entry.path, 'dir'), '\/$', '', ''))
-    mode
-  endif
-
-  " return s:util.debug(
-  "       \ 'entry_path:         ' . entry_path,
-  "       \ 'dest_path:          ' . dest_path,
-  "       \ 'dest_parent:        ' . dest_parent,
-  "       \ 'mkdir_removable:    ' . s:util.mkdir_removable(dest_parent),
-  "       \ 'move_into_self:     ' . string(errors.move_into_self),
-  "       \ 'dest_exists:        ' . string(errors.dest_exists),
-  "       \ 'overwrite_parent:   ' . string(errors.overwrite_parent))
-
-  if errors.noop
-    return
-  elseif errors.overwrite_parent
-    return s:util.confirm('unable to overwrite parent directory')
-  elseif errors.move_into_self
-    return s:util.confirm('files and directories can not be moved into themselves')
-  elseif errors.dest_exists
-    let choice = s:util.confirm({
-          \ 'message': join(['destination "' . dest_path . '" already exists,',
-          \                  "what would you like to do?"], "\n\n"),
-          \ 'choices': "&Cancel\n&Overwrite"
-          \ })
-
-    if choice !=? 2
-      return
-    endif
-  elseif !isdirectory(dest_parent)
-    if !s:util.mkdirp(dest_parent)
-      return
-    endif
-  endif
-
-  if rename(entry_path, dest_path) !=? 0
-    return s:util.confirm({
-          \ 'entries': [['rename', [{'path': entry_path}]],
-          \             ['to',     [{'path': dest_path}]]],
-          \ 'message': 'failed, press <ENTER> to continue'})
-  endif
-
-  if resync
-    call b:root.sync()
-    call s:view.render()
-  endif
-endfunction
-
-function! s:util.mkdirp(path) abort
-  try
-    call mkdir(a:path, 'p')
-  finally
-    if isdirectory(a:path)
-      return 1
-    else
-      call s:util.confirm('failed to create "' . a:path . '"')
-      return 0
-    endif
-  endtry
-endfunction
-
-function! s:util.debug(...) abort
-  return s:util.confirm({'message': '', 'entries': [
-        \ ['debug', map(copy(a:000), "{'path': v:val}")]]
-        \ })
-endfunction
-
 function! treevial#unlink() abort
   let selection = b:root.list_actionable()
 
@@ -774,6 +580,217 @@ augroup Treevial
   autocmd!
   autocmd VimEnter * nested call s:vimenter()
 augroup END
+
+function! s:util.handle_move_multiple_entries(entries) abort
+  let entries              = copy(a:entries)
+  let entry_filenames      = uniq(sort(map(copy(entries), 'v:val.filename')))
+  let entry_filename_table = s:util.to_dict(map(copy(entry_filenames), '[v:val, []]'))
+  let illegal_moves        = []
+  let dest_path            = expand(
+        \ substitute(input('directory: ', b:root.path, 'dir'), '\/$', '', ''))
+
+  mode
+
+  if filereadable(dest_path)
+    call s:util.confirm(dest_path . ' is a file, please choose a directory')
+    return s:util.handle_move_multiple_entries(entries)
+  elseif empty(dest_path)
+    return
+  endif
+
+  for entry in entries
+    let errors = s:util.validate_move(entry.path, dest_path . '/' . entry.filename)
+
+    call add(entry_filename_table[entry.filename], entry)
+
+    if errors.overwrite_parent || errors.move_into_self
+      call add(illegal_moves, entry)
+    endif
+  endfor
+
+  call filter(entry_filename_table, 'len(v:val) >? 1')
+
+  if !empty(illegal_moves)
+    let one = len(illegal_moves) ==? 1
+    let choice = s:util.confirm({
+          \ 'entries': illegal_moves,
+          \ 'message': 'can not be moved because '
+          \          . (one ? 'its' : 'their')
+          \          . ' parent directory would be overwritten,'
+          \          . ' or ' . (one ? 'it' : 'they')
+          \          . ' would overwrite ' . (one ? 'itself' : 'themselves')
+          \          . ', what would you like to do?',
+          \ 'choices': "&Cancel\n&Unmark"
+          \ })
+
+    if choice ==? 2
+      for illegal in illegal_moves
+        call illegal.mark(0)
+        call illegal.mark_children()
+      endfor
+
+      call filter(entries, 'v:val.is_marked')
+      call s:view.render()
+    endif
+    return
+  endif
+
+  if !empty(entry_filename_table)
+    let choice = s:util.confirm({
+          \ 'entries': items(entry_filename_table),
+          \ 'message': 'unable to copy multiple files with the same name,'
+          \          . ' what would you like to do?',
+          \ 'choices': "&Cancel\n&Unmark duplicates"
+          \ })
+
+    if choice ==? 2
+      for [_, entries] in items(entry_filename_table)
+        for entry in entries[1:]
+          call entry.mark()
+          call entry.mark_children()
+        endfor
+      endfor
+
+      call filter(entries, 'v:val.is_marked')
+      call s:view.render()
+    else
+      return
+    endif
+  endif
+
+  if !isdirectory(dest_path) && !s:util.mkdirp(dest_path)
+    return
+  endif
+
+  let dest_entry      = s:entry.new(dest_path)
+  let dest_filenames  = map(dest_entry.children(), 'tolower(v:val.filename)')
+  let would_overwrite = filter(
+        \ copy(entries),
+        \ {_, entry -> index(dest_filenames, tolower(entry.filename)) >? -1})
+
+  mode
+
+  if !empty(would_overwrite)
+    let choice = s:util.confirm({
+          \ 'entries': would_overwrite,
+          \ 'message': 'will overwrite a file or directory in "' . dest_path . '"',
+          \ 'choices': "&Cancel\n&Overwrite\n&Unmark"
+          \ })
+
+    if choice ==? 3
+      for entry in would_overwrite
+        entry.mark(0)
+        entry.mark_children()
+      endfor
+
+      call filter(entries, 'v:val.is_marked')
+    elseif choice !=? 2
+      return
+    endif
+  endif
+
+  for marked in entries
+    call s:util.move(marked.path, dest_path . '/' . marked.filename)
+  endfor
+
+  call b:root.sync()
+  call s:view.render()
+endfunction
+
+function! s:util.handle_move_single_entry(entry) abort
+  let dest_path   = expand(substitute(input('destination: ', a:entry.path, 'dir'), '\/$', '', ''))
+  let dest_parent = fnamemodify(dest_path, ':h')
+  let entry_path  = substitute(a:entry.path, '\/$', '', '')
+  let errors      = s:util.validate_move(entry_path, dest_path)
+
+  mode
+
+  if errors.noop
+    return
+  elseif errors.overwrite_parent
+    return s:util.confirm('unable to overwrite parent directory')
+  elseif errors.move_into_self
+    return s:util.confirm('files and directories can not be moved into themselves')
+  elseif errors.dest_exists
+    let choice = s:util.confirm({
+          \ 'message': join(['destination "' . dest_path . '" already exists,',
+          \                  "what would you like to do?"], "\n\n"),
+          \ 'choices': "&Cancel\n&Overwrite"
+          \ })
+
+    if choice !=? 2
+      return
+    endif
+  elseif !isdirectory(dest_parent)
+    if !s:util.mkdirp(dest_parent)
+      return
+    endif
+  endif
+
+  call s:util.move(entry_path, dest_path)
+  call b:root.sync()
+  call s:view.render()
+endfunction
+
+function! s:util.move(from, to) abort
+  if rename(a:from, a:to) !=? 0
+    return s:util.confirm({
+          \ 'entries': [['rename', [{'path': a:from}]],
+          \             ['to',     [{'path': a:to}]]],
+          \ 'message': 'failed, press <ENTER> to continue'})
+  endif
+endfunction
+
+function! s:util.mkdirp(path) abort
+  try
+    call mkdir(a:path, 'p')
+  finally
+    if isdirectory(a:path)
+      return 1
+    else
+      call s:util.confirm('failed to create "' . a:path . '"')
+      return 0
+    endif
+  endtry
+endfunction
+
+function! s:util.mkdir_removable(path) abort
+  let parts   = split(a:path, '/')
+  let path    = join(parts, '/')
+  let current = ''
+
+  for dirname in parts
+    let current .= '/' . dirname
+
+    if !isdirectory(current)
+      break
+    endif
+  endfor
+
+  return isdirectory(current) ? '' : current
+endfunction
+
+function s:util.validate_move(from, to) abort
+  let from = substitute(a:from, '\/$', '', '')
+  let to   = substitute(a:to, '\/$', '', '')
+
+  return {
+        \ 'overwrite_parent': from =~? '^' . to && isdirectory(to),
+        \ 'move_into_self': to =~? '^' . from . '/',
+        \ 'noop': to ==? from || empty(to) || empty(from),
+        \ 'dest_exists': isdirectory(to) || filereadable(to)
+        \ }
+endfunction
+
+function! s:util.to_dict(listlist) abort
+  let dict = {}
+
+  for [key, value] in a:listlist
+    let dict[key] = value
+  endfor
+
+  return dict
+endfunction
 " }}}
 
 " {{{ script teardown
