@@ -370,6 +370,10 @@ function! s:entry.expand(...) abort dict
   return self
 endfunction
 
+" FIXME: ripgrep will be muuuuuuuuuch faster than performing
+" all those glob operations recursively.
+" lets find a way to use it as an alternative 'back-end'
+" for fetching / initializing children.
 function! s:entry.children() abort dict
   if self.is_dir && !has_key(self, '_children')
     let root     = substitute(self.path, '/\+$', '', '')
