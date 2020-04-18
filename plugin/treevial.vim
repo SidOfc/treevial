@@ -51,17 +51,12 @@ function! treevial#mark(...) abort
 endfunction
 
 function! treevial#unmark_all() abort
-  let rerender = 0
-
   for [entry, _] in b:entries
-    let rerender = rerender || entry.is_marked
     call entry.mark(0)
     call entry.mark_children()
   endfor
 
-  if rerender
-    call s:view.render()
-  endif
+  call s:view.render()
 endfunction
 
 function! treevial#move() abort
@@ -117,14 +112,15 @@ function! s:util.to_dict(listlist) abort
 endfunction
 
 function! s:util.handle_move_multiple_entries(entries) abort
-  let entry_filenames      = uniq(sort(map(copy(a:entries), 'v:val.filename')))
+  let entries              = copy(a:entries)
+  let entry_filenames      = uniq(sort(map(copy(entries), 'v:val.filename')))
   let entry_filename_table = s:util.to_dict(map(copy(entry_filenames), '[v:val, []]'))
   let dest_path            = expand(
         \ substitute(input('directory: ', b:root.path, 'dir'), '\/$', '', ''))
 
   mode
 
-  for entry in a:entries
+  for entry in entries
     call add(entry_filename_table[entry.filename], entry)
   endfor
 
@@ -145,42 +141,68 @@ function! s:util.handle_move_multiple_entries(entries) abort
           call entry.mark_children()
         endfor
       endfor
+
+      call filter(entries, 'v:val.is_marked')
+      call s:view.render()
+    else
+      return
     endif
-
-    call s:view.render()
   endif
-
-  echom choice
-  return choice
 
   if !isdirectory(dest_path) && !s:util.mkdirp(dest_path)
     return
   endif
 
   let dest_entry      = s:entry.new(dest_path)
-  let dest_filenames  = map(dest_entry.children(), 'v:val.filename')
-  let entry_conflicts = filter(
-        \ copy(a:entries),
-        \ {_ ,entry -> index(entry_filen)})
+  let dest_filenames  = map(dest_entry.children(), 'tolower(v:val.filename)')
   let would_overwrite = filter(
-        \ copy(a:entries),
-        \ {_, entry -> index(dest_filenames, entry.filename) >? -1})
+        \ copy(entries),
+        \ {_, entry -> index(dest_filenames, tolower(entry.filename)) >? -1})
 
   mode
 
-  return s:util.confirm({
-        \ 'entries': would_overwrite,
-        \ 'message': 'would_overwrite'
-        \ })
+  if !empty(would_overwrite)
+    let choice = s:util.confirm({
+          \ 'entries': would_overwrite,
+          \ 'message': 'will overwrite a file or directory in "' . dest_path . '"',
+          \ 'choices': "&Cancel\n&Overwrite\n&Unmark"
+          \ })
+
+    if choice ==? 3
+      for entry in would_overwrite
+        entry.mark(0)
+        entry.mark_children()
+      endfor
+
+      call filter(entries, 'v:val.is_marked')
+    elseif choice !=? 2
+      return
+    endif
+  endif
+
+  for marked in entries
+    call s:util.handle_move_single_entry(
+          \ marked,
+          \ {'destination': dest_path . '/' . marked.filename,
+          \  'resync': 0})
+  endfor
+
+  call b:root.sync()
+  call s:view.render()
 endfunction
 
-function! s:util.handle_move_single_entry(entry) abort
-  let dest_path   = expand(substitute(input('destination: ', a:entry.path, 'dir'), '\/$', '', ''))
+function! s:util.handle_move_single_entry(entry, ...) abort
+  let options     = get(a:, 1, {})
+  let resync      = get(options, 'resync', 1)
+  let dest_path   = get(options, 'destination', '')
   let dest_parent = fnamemodify(dest_path, ':h')
   let entry_path  = substitute(a:entry.path, '\/$', '', '')
   let errors      = s:util.validate_move(entry_path, dest_path)
 
-  mode
+  if empty(dest_path)
+    let dest_path = expand(substitute(input('destination: ', a:entry.path, 'dir'), '\/$', '', ''))
+    mode
+  endif
 
   " return s:util.debug(
   "       \ 'entry_path:         ' . entry_path,
@@ -220,8 +242,10 @@ function! s:util.handle_move_single_entry(entry) abort
           \ 'message': 'failed, press <ENTER> to continue'})
   endif
 
-  call b:root.sync()
-  call s:view.render()
+  if resync
+    call b:root.sync()
+    call s:view.render()
+  endif
 endfunction
 
 function! s:util.mkdirp(path) abort
