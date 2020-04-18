@@ -59,15 +59,45 @@ function! treevial#unmark_all() abort
   call s:view.render()
 endfunction
 
+function! treevial#create() abort
+  let destination = input('create: ', b:root.path, 'dir')
+  let dest_is_dir = destination =~? '\/$'
+  let dest_exists = filereadable(destination) || isdirectory(destination)
+
+  if dest_exists
+    return s:util.confirm(destination . ' already exists')
+  endif
+
+  if dest_is_dir
+    if !s:util.mkdirp(destination)
+      return
+    endif
+  else
+    let dest_dir = fnamemodify(destination, ':h')
+    if isdirectory(dest_dir) || s:util.mkdirp(dest_dir)
+      try
+        if writefile([], destination, 'b') !=? 0
+          throw 1
+        endif
+      catch
+        return s:util.confirm('failed to create file: ' . destination)
+      endtry
+    endif
+  endif
+
+  call b:root.sync()
+  call s:view.render()
+endfunction
+
 function! treevial#move() abort
   let selection = b:root.list_actionable()
 
   if len(selection) <? 2
     let entry = get(selection, 0, s:util.lnum_to_entry(line('.')))
 
-    return s:util.is_entry(entry)
-          \ ? s:util.handle_move_single_entry(entry)
-          \ : s:util.confirm_potential_bug()
+    if s:util.is_entry(entry)
+      call s:util.handle_move_single_entry(entry)
+    endif
   else
     return s:util.handle_move_multiple_entries(selection)
   endif
@@ -81,8 +111,6 @@ function! treevial#unlink() abort
 
     if s:util.is_entry(entry)
       let selection = [entry]
-    else
-      return s:util.confirm_potential_bug()
     endif
   endif
 
@@ -143,9 +171,10 @@ function! s:view.buffer(...) abort
   nnoremap <silent><buffer> <C-x>   :call treevial#open({'command': 'spl'})<Cr>
   nnoremap <silent><buffer> <Tab>   :call treevial#mark()<Cr>
   nnoremap <silent><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
-  nnoremap <silent><buffer> U       :call treevial#unmark_all()<Cr>
-  nnoremap <silent><buffer> D       :call treevial#unlink()<Cr>
-  nnoremap <silent><buffer> M       :call treevial#move()<Cr>
+  nnoremap <silent><buffer> u       :call treevial#unmark_all()<Cr>
+  nnoremap <silent><buffer> d       :call treevial#unlink()<Cr>
+  nnoremap <silent><buffer> m       :call treevial#move()<Cr>
+  nnoremap <silent><buffer> c       :call treevial#create()<Cr>
 
   if s:is_nvim
     nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
@@ -482,13 +511,6 @@ function! s:util.delete_all(entries) abort
   endfor
 
   return failed_entries
-endfunction
-
-function! s:util.confirm_potential_bug() abort
-  return s:util.confirm(printf(
-        \ "%s\n\n%s",
-        \ 'aborting because this is probably a bug',
-        \ 'please open an issue on: https://github.com/sidofc/treevial/issues'))
 endfunction
 
 function s:util.confirm(overrides) abort
