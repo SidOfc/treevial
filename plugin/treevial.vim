@@ -201,8 +201,7 @@ function! s:view.render() abort
 
   for [entry, depth] in b:entries
     let current_lnum += 1
-    let indent_ws     = depth * 2
-    let indent        = repeat(' ', indent_ws)
+    let indent        = repeat('  ', depth)
     let prefix        = len(entry.fetched_children())
           \ ? entry.is_open ? '- ' : '+ ' : mark_prefix
 
