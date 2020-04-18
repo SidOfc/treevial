@@ -66,6 +66,8 @@ function! treevial#create() abort
 
   if dest_exists
     return s:util.confirm(destination . ' already exists')
+  elseif empty(destination)
+    return
   endif
 
   if dest_is_dir
@@ -114,25 +116,27 @@ function! treevial#destroy() abort
     endif
   endif
 
-  let choice = s:util.confirm({
-        \ 'entries': selection,
-        \ 'message': 'will be deleted, continue?',
-        \ 'choices': "&No\n&Yes"
-        \ })
+  if !empty(selection)
+    let choice = s:util.confirm({
+          \ 'entries': selection,
+          \ 'message': 'will be deleted, continue?',
+          \ 'choices': "&No\n&Yes"
+          \ })
 
-  if choice ==# 2
-    let failed = s:util.delete_all(selection)
+    if choice ==# 2
+      let failed = s:util.delete_all(selection)
 
-    if len(failed)
-      call s:util.confirm({
-            \ 'entries': failed
-            \ 'message': 'could not be removed and will remain marked!',
-            \ 'choices': "&Ok"
-            \ })
+      if len(failed)
+        call s:util.confirm({
+              \ 'entries': failed
+              \ 'message': 'could not be removed and will remain marked!',
+              \ 'choices': "&Ok"
+              \ })
+      endif
+
+      call b:root.sync()
+      call s:view.render()
     endif
-
-    call b:root.sync()
-    call s:view.render()
   endif
 endfunction
 " }}}
@@ -171,10 +175,10 @@ function! s:view.buffer(...) abort
   nnoremap <silent><buffer> <C-x>   :call treevial#open({'command': 'spl'})<Cr>
   nnoremap <silent><buffer> <Tab>   :call treevial#mark()<Cr>
   nnoremap <silent><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
-  nnoremap <silent><buffer> u       :call treevial#unmark_all()<Cr>
-  nnoremap <silent><buffer> d       :call treevial#destroy()<Cr>
-  nnoremap <silent><buffer> m       :call treevial#move()<Cr>
-  nnoremap <silent><buffer> c       :call treevial#create()<Cr>
+  nnoremap <silent><buffer> U       :call treevial#unmark_all()<Cr>
+  nnoremap <silent><buffer> D       :call treevial#destroy()<Cr>
+  nnoremap <silent><buffer> M       :call treevial#move()<Cr>
+  nnoremap <silent><buffer> C       :call treevial#create()<Cr>
 
   if s:is_nvim
     nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
