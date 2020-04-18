@@ -152,12 +152,7 @@ function! s:view.buffer(...) abort
   let b:entries = get(b:,      'entries', [])
   let b:root    = get(b:,      'root',    s:entry.new(b:cwd).expand())
 
-  setlocal noru nonu nornu noma nomod ro noswf nospell
-  setlocal bufhidden=hide
-  setlocal buftype=nowrite
-  setlocal laststatus=0
-  setlocal shiftwidth=2
-  setlocal signcolumn=no
+  setlocal noru nonu nornu noma nomod ro noswf nospell bufhidden=hide buftype=nowrite
 
   augroup TreevialBuffer
     autocmd!
@@ -590,26 +585,6 @@ function! s:util.pluralize(word, count) abort
     return plural
   endif
 endfunction
-" }}}
-
-" {{{ activation on startup + create Tree[vial][!] command
-function! s:vimenter() abort
-  let root_target = get(argv(), 0, getcwd())
-  let no_lnum     = line2byte('$') ==# -1
-
-  if isdirectory(root_target) && no_lnum && !&insertmode && &modifiable
-    call s:view.buffer({'cwd': root_target})
-  endif
-endfunction
-
-if !exists(':Treevial')
-  command -bang Treevial call s:view.buffer({'bang': <bang>0})
-endif
-
-augroup Treevial
-  autocmd!
-  autocmd VimEnter * nested call s:vimenter()
-augroup END
 
 function! s:util.handle_move_multiple_entries(entries) abort
   let entries              = copy(a:entries)
@@ -821,6 +796,26 @@ function! s:util.to_dict(listlist) abort
 
   return dict
 endfunction
+" }}}
+
+" {{{ activation on startup + create Tree[vial][!] command
+function! s:vimenter() abort
+  let root_target = get(argv(), 0, getcwd())
+  let no_lnum     = line2byte('$') ==# -1
+
+  if isdirectory(root_target) && no_lnum && !&insertmode && &modifiable
+    call s:view.buffer({'cwd': root_target})
+  endif
+endfunction
+
+if !exists(':Treevial')
+  command -bang Treevial call s:view.buffer({'bang': <bang>0})
+endif
+
+augroup Treevial
+  autocmd!
+  autocmd VimEnter * nested call s:vimenter()
+augroup END
 " }}}
 
 " {{{ script teardown
