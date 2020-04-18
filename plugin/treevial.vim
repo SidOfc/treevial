@@ -101,7 +101,7 @@ function s:util.validate_move(from, to) abort
   return {
         \ 'overwrite_parent': from =~? '^' . to && isdirectory(to),
         \ 'move_into_self': to =~? '^' . from . '/',
-        \ 'noop': to ==? from,
+        \ 'noop': to ==? from || empty(to) || empty(from),
         \ 'dest_exists': isdirectory(to) || filereadable(to)
         \ }
 endfunction
