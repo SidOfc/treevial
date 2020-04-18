@@ -103,7 +103,7 @@ function! treevial#move() abort
   endif
 endfunction
 
-function! treevial#unlink() abort
+function! treevial#destroy() abort
   let selection = b:root.list_actionable()
 
   if empty(selection)
@@ -172,7 +172,7 @@ function! s:view.buffer(...) abort
   nnoremap <silent><buffer> <Tab>   :call treevial#mark()<Cr>
   nnoremap <silent><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
   nnoremap <silent><buffer> u       :call treevial#unmark_all()<Cr>
-  nnoremap <silent><buffer> d       :call treevial#unlink()<Cr>
+  nnoremap <silent><buffer> d       :call treevial#destroy()<Cr>
   nnoremap <silent><buffer> m       :call treevial#move()<Cr>
   nnoremap <silent><buffer> c       :call treevial#create()<Cr>
 
