@@ -1,10 +1,12 @@
-hi def EndOfBuffer          ctermfg=Black    guifg=Black    guibg=NONE ctermbg=NONE
-hi def TreevialDir          ctermfg=DarkBlue guifg=DarkBlue cterm=bold gui=bold
-hi def TreevialDefaultMark  ctermfg=DarkGray guifg=DarkGray
-hi def TreevialSelectedMark ctermfg=Red      guifg=Red
-hi def TreevialPartialMark  ctermfg=Yellow   guifg=Yellow   cterm=bold gui=bold
-hi def TreevialDirState     ctermfg=DarkGray guifg=DarkGray cterm=bold gui=bold
+hi def EndOfBuffer          ctermfg=Black     guifg=Black    guibg=NONE ctermbg=NONE
+hi def TreevialDir          ctermfg=DarkBlue  guifg=#00aaff  cterm=bold gui=bold
+hi def TreevialDefaultMark  ctermfg=Gray      guifg=Gray
+hi def TreevialSelectedMark ctermfg=Red       guifg=Red
+hi def TreevialPartialMark  ctermfg=Yellow    guifg=Yellow   cterm=bold gui=bold
+hi def TreevialDirState     ctermfg=DarkGray  guifg=Gray     cterm=bold gui=bold
+hi def TreevialFile         ctermfg=LightGray guifg=#bbbbbb  cterm=bold gui=bold
 
+syn match TreevialFile        /[^\/]\+[^\/]$/
 syn match TreevialDir         /\([^ \/]\+\/\)\+/
 syn match TreevialDirState    /^\s*[+-]/
 syn match TreevialDefaultMark /^\s*[\*|•]/
