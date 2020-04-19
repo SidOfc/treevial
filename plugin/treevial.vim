@@ -153,15 +153,6 @@ function! s:view.buffer(...) abort
 
   setlocal noru nonu nornu noma nomod ro noswf nospell bufhidden=hide buftype=nowrite
 
-  augroup TreevialBuffer
-    autocmd!
-    autocmd BufEnter,FocusGained <buffer>
-          \ call b:root.sync() |
-          \ call s:view.render()
-    autocmd CursorMoved <buffer>
-          \ call s:util.keep_cursor_below_root()
-  augroup END
-
   nnoremap <silent><buffer> v       <Nop>
   nnoremap <silent><buffer> V       <Nop>
   nnoremap <silent><buffer> <Cr>    :call treevial#open()<Cr>
@@ -178,10 +169,7 @@ function! s:view.buffer(...) abort
     nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
   endif
 
-  if s:is_vim
-    call b:root.sync()
-  endif
-
+  call b:root.sync()
   call s:view.render()
 endfunction
 
@@ -812,7 +800,16 @@ endif
 
 augroup Treevial
   autocmd!
-  autocmd VimEnter * nested call s:vimenter()
+  autocmd VimEnter * call s:vimenter()
+  autocmd BufLeave,FocusLost treevial let b:active = 0
+  autocmd BufEnter,FocusGained treevial
+        \ if get(b:, 'active', 1) ==? 0 |
+        \   call b:root.sync() |
+        \   call s:view.render() |
+        \   let b:active = 1 |
+        \ endif
+  autocmd CursorMoved treevial
+        \ call s:util.keep_cursor_below_root()
 augroup END
 " }}}
 
