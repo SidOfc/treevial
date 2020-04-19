@@ -147,10 +147,9 @@ function! s:view.buffer(...) abort
   setfiletype treevial
 
   let options   = get(a:,      1,         {})
-  let sync      = get(options, 'bang',    !exists('b:entries'))
   let b:cwd     = get(options, 'cwd',     getcwd())
   let b:entries = get(b:,      'entries', [])
-  let b:root    = get(b:,      'root',    s:entry.new(b:cwd).expand())
+  let b:root    = get(b:,      'root',    s:entry.new(b:cwd))
 
   setlocal noru nonu nornu noma nomod ro noswf nospell bufhidden=hide buftype=nowrite
 
@@ -179,7 +178,7 @@ function! s:view.buffer(...) abort
     nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
   endif
 
-  if sync
+  if s:is_vim
     call b:root.sync()
   endif
 
@@ -206,9 +205,9 @@ function! s:view.render() abort
           \ ? entry.is_open ? '- ' : '+ ' : mark_prefix
 
     if entry.is_marked
-      call matchaddpos('TreevialSelectedMark', [[current_lnum + 1, indent_ws + 1]])
+      call matchaddpos('TreevialSelectedMark', [[current_lnum + 1, depth * 2 + 1]])
     elseif entry.has_marked_entries()
-      call matchaddpos('TreevialPartialMark',  [[current_lnum + 1, indent_ws + 1]])
+      call matchaddpos('TreevialPartialMark',  [[current_lnum + 1, depth * 2 + 1]])
     endif
 
     call append(current_lnum, indent . prefix . entry.name)

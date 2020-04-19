@@ -12,7 +12,10 @@ set rtp+=.
 " below are things I need to stay sane during development
 set wildignore=.git,.DS_Store
 set splitright splitbelow
-set termguicolors
+
+if has('nvim')
+  set termguicolors
+endif
 
 " less painful debugging experience
 if (isdirectory($HOME . '/.vim/plugged/vim-tmux-navigator/'))
