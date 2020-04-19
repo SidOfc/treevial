@@ -199,6 +199,8 @@ function! s:view.render() abort
 
     if entry.is_exe
       call matchaddpos('TreevialExecutable', [[current_lnum + 1, len(line) - fname_len, fname_len + 1]])
+    elseif entry.is_symlink
+      call matchaddpos('TreevialSymlink', [[current_lnum + 1, len(line) - fname_len, fname_len + 1]])
     endif
 
     if entry.is_marked
@@ -268,6 +270,7 @@ function! s:entry.new(path, ...) abort
         \ 'name': substitute(path, root, '', '')[1:],
         \ 'filename': get(split(path, '/'), -1, ''),
         \ 'path': path,
+        \ 'is_symlink': a:path !=? resolve(a:path),
         \ 'is_dir': is_dir,
         \ 'is_exe': executable(path),
         \ 'is_open': 0,
