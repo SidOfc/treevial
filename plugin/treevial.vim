@@ -188,17 +188,24 @@ function! s:view.render() abort
 
   for [entry, depth] in b:entries
     let current_lnum += 1
-    let indent        = repeat('  ', depth)
+    let indent_mult   = depth * 2
+    let indent        = repeat(' ', indent_mult)
+    let fname_len     = len(entry.filename)
     let prefix        = len(entry.fetched_children())
           \ ? entry.is_open ? '- ' : '+ ' : mark_prefix
+    let line = indent . prefix . entry.name
 
-    if entry.is_marked
-      call matchaddpos('TreevialSelectedMark', [[current_lnum + 1, depth * 2 + 1]])
-    elseif entry.has_marked_entries()
-      call matchaddpos('TreevialPartialMark',  [[current_lnum + 1, depth * 2 + 1]])
+    call append(current_lnum, line)
+
+    if entry.is_exe
+      call matchaddpos('TreevialExecutable', [[current_lnum + 1, len(line) - fname_len, fname_len + 1]])
     endif
 
-    call append(current_lnum, indent . prefix . entry.name)
+    if entry.is_marked
+      call matchaddpos('TreevialSelectedMark', [[current_lnum + 1, indent_mult + 1]])
+    elseif entry.has_marked_entries()
+      call matchaddpos('TreevialPartialMark',  [[current_lnum + 1, indent_mult + 1]])
+    endif
   endfor
 
   call s:util.clear_trailing_empty_lines()
@@ -262,6 +269,7 @@ function! s:entry.new(path, ...) abort
         \ 'filename': get(split(path, '/'), -1, ''),
         \ 'path': path,
         \ 'is_dir': is_dir,
+        \ 'is_exe': executable(path),
         \ 'is_open': 0,
         \ 'is_marked': 0,
         \ 'new': 0
