@@ -187,20 +187,44 @@ function! s:view.render() abort
   call append(current_lnum, b:root.name)
 
   for [entry, depth] in b:entries
-    let current_lnum += 1
-    let indent_mult   = depth * 2
-    let indent        = repeat(' ', indent_mult)
-    let fname_len     = len(entry.filename)
-    let prefix        = len(entry.fetched_children())
+    let check_symlinks  = 0
+    let current_lnum   += 1
+    let indent_mult     = depth * 2
+    let indent          = repeat(' ', indent_mult)
+    let fname_len       = len(entry.filename)
+    let prefix          = len(entry.fetched_children())
           \ ? entry.is_open ? '- ' : '+ ' : mark_prefix
-    let line = indent . prefix . entry.name
+    let line            = indent . prefix . entry.name
 
     call append(current_lnum, line)
 
     if entry.is_exe
-      call matchaddpos('TreevialExecutable', [[current_lnum + 1, len(line) - fname_len, fname_len + 1]])
-    elseif entry.is_symlink
-      call matchaddpos('TreevialSymlink', [[current_lnum + 1, len(line) - fname_len, fname_len + 1]])
+      call matchaddpos('TreevialExecutable', [[current_lnum + 1, len(line) - fname_len + 1, fname_len]])
+    endif
+
+    for symlink in entry.symlinks
+      if symlink
+        let check_symlinks = 1
+        break
+      endif
+    endfor
+
+    if check_symlinks
+      let parts  = split(substitute(entry.name, '\/\+$', '', ''), '/')
+      let column = len(line)
+      let is_dir = entry.is_dir
+      for idx in reverse(range(0, len(parts) - 1))
+        if get(entry.symlinks, idx, 0)
+          let part       = get(parts, idx, '')
+          let part_len   = len(part)
+          let column    -= part_len
+          call matchaddpos(
+                \ 'TreevialSymlink',
+                \ [[current_lnum + 1, column + 1, part_len + (!is_dir)]])
+          let column    -= 1
+          let is_dir     = 1
+        endif
+      endfor
     endif
 
     if entry.is_marked
@@ -275,7 +299,8 @@ function! s:entry.new(path, ...) abort
         \ 'is_exe': executable(path),
         \ 'is_open': 0,
         \ 'is_marked': 0,
-        \ 'new': 0
+        \ 'new': 0,
+        \ 'symlinks': []
         \ })
 endfunction
 
@@ -343,18 +368,23 @@ function! s:entry.expand(...) abort dict
 
   for child_entry in self.children()
     let result_entry = child_entry
+    let symlinks     = [result_entry.is_symlink]
 
     while len(result_entry.children()) ==# 1
       let result_entry = result_entry.children()[0]
+      call add(symlinks, result_entry.is_symlink)
     endwhile
 
     if child_entry.path !=# result_entry.path
       call child_entry.update({
             \ 'name': substitute(result_entry.path, self.path, '', ''),
             \ 'filename': result_entry.filename,
+            \ 'is_exe': result_entry.is_exe,
+            \ 'is_symlink': result_entry.is_symlink,
             \ 'path': result_entry.path,
             \ 'is_dir': result_entry.is_dir,
-            \ '_children': result_entry.fetched_children()
+            \ '_children': result_entry.fetched_children(),
+            \ 'symlinks': symlinks
             \ })
     endif
   endfor
