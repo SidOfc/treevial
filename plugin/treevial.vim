@@ -23,10 +23,10 @@ function! treevial#open(...) abort
   let entry   = s:util.lnum_to_entry(line('.'))
 
   if s:util.is_entry(entry)
-    if entry.is_dir
+    if entry.is_dir && get(options, 'dirs', 1)
       call entry.toggle(options)
       call s:view.render()
-    else
+    elseif get(options, 'files', 1)
       call entry.open(options)
     endif
   endif
@@ -137,14 +137,14 @@ function! s:view.buffer(...) abort
   nnoremap <silent><buffer> v       <Nop>
   nnoremap <silent><buffer> V       <Nop>
   nnoremap <silent><buffer> <Cr>    :call treevial#open()<Cr>
-  nnoremap <silent><buffer> <C-v>   :call treevial#open({'command': 'vspl'})<Cr>
-  nnoremap <silent><buffer> <C-x>   :call treevial#open({'command': 'spl'})<Cr>
+  nnoremap <silent><buffer> <C-v>   :call treevial#open({'command': 'vspl', 'dirs:' 0})<Cr>
+  nnoremap <silent><buffer> <C-x>   :call treevial#open({'command': 'spl',  'dirs': 0})<Cr>
   nnoremap <silent><buffer> <Tab>   :call treevial#mark()<Cr>
   nnoremap <silent><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
-  nnoremap <silent><buffer> U       :call treevial#unmark_all()<Cr>
-  nnoremap <silent><buffer> D       :call treevial#destroy()<Cr>
-  nnoremap <silent><buffer> M       :call treevial#move()<Cr>
-  nnoremap <silent><buffer> C       :call treevial#create()<Cr>
+  nnoremap <silent><buffer> u       :call treevial#unmark_all()<Cr>
+  nnoremap <silent><buffer> d       :call treevial#destroy()<Cr>
+  nnoremap <silent><buffer> m       :call treevial#move()<Cr>
+  nnoremap <silent><buffer> c       :call treevial#create()<Cr>
 
   if s:is_nvim
     nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>

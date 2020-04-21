@@ -5,5 +5,100 @@
 `Version: 0.1.0`
 
 ==============================================================================
+MAPPINGS                                                     *treevial-mappings*
+
+<CR>                                                 *treevial-cr* *treevial-<cr>*
+
+  Pressing <CR> (return / enter) on your keyboard will perform a different
+  action depending on the entry below the cursor.
+
+  When the cursor is on the root directory (line 1), pressing <CR> will no-op.
+  When on a file, pressing <CR> will open that file in the current window.
+  When on a directory, pressing <CR> will toggle its state to open or closed.
+
+<C-V>                                              *treevial-c-v* *treevial-<c-v>*
+
+  Pressing <C-V> will not put you in |visual-block| mode. Instead, Treevial
+  uses this key combination to open a file in a vertical split (|vsplit|).
+
+  This mapping will no-op when on the root directory (line 1) or when trying
+  to use this mapping on a directory.
+
+<C-X>                                              *treevial-c-x* *treevial-<c-x>*
+
+  Like <C-V>, but using a horizontal |split|.
+
+<Tab>                                              *treevial-tab* *treevial-<tab>*
+
+  Pressing <Tab> will mark or unmark the entry below the cursor. After
+  marking the current entry, the cursor will be moved down one line. This is
+  convenient for selecting a list of files in descending order.
+
+  This mapping will no-op when on the root directory (line 1).
+
+<S-Tab>                                        *treevial-s-tab* *treevial-<s-tab>*
+
+  Like <Tab>, but moves up one line instead of down. This one is convenient
+  for selecting a list of files in ascending order.
+
+<u>                                                    *treevial-u* *treevial-<u>*
+
+  Pressing <u> will unmark all marked entries.
+
+<d>                                                    *treevial-d* *treevial-<d>*
+
+  Pressing <d> will delete a file or directory (recursively!).
+
+  This mapping will no-op when on the root directory (line 1).
+
+  When no files / directories are marked, the entry below the cursor will be
+  deleted after user confirmation.
+
+  When one or more files / directories are marked, these files will be deleted
+  after user confirmation.
+
+<c>                                                    *treevial-c* *treevial-<c>*
+
+  Pressing <c> will prompt the user using Vim's |input| prompt for a
+  destination to create. When the destination ends in a '/' a directory
+  will be created instead of a file.
+
+  Any parent directories will be created as needed.
+
+  Checks are performed before creating the destination file / directory.
+  If destination exists, it will ask the user to overwrite or cancel.
+
+<m>                                                    *treevial-m* *treevial-<m>*
+
+  Pressing <m> will move a file or directory. The destination is requested
+  using Vim's built-in |input| prompt with {completion} set to 'dir'.
+
+  The destination does not have to exist, if it does not it will be created.
+
+  This mapping will no-op when on the root directory (line 1).
+
+  When no files / directories are marked, the entry below the cursor will be
+  moved to a new location after user confirmation. This functionality can be
+  used to rename files and directories as well. When renaming a directory,
+  the final destination must end with a '/' character!
+
+  When one or more  files / directories are marked, these will be moved
+  after user confirmation.
+
+  Some checks are also performed to ensure that moving one or more files /
+  directories will not cause conflicts. This includes making sure that all
+  the files to move (marked / cursor entry) have a unique filename. If
+  this is not the case, the user will be asked if duplicates should
+  be unmarked. This is done automatically.
+
+  After this is done, the remaining files are checked against the
+  destination if it exists, and if any files in the destination would be
+  overwritten then the user has to confirm this or choose to unmark
+  conflicting files and continue.
+
+  Finally, checks will be performed to ensure that directories are not
+  copied "into" themselves or would otherwise overwrite the directory
+  they would be moved from, the user can choose to cancel or unmark
+  and continue.
 
 vim:tw=78:sw=2:ft=help:norl:
