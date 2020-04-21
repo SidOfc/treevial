@@ -7,6 +7,7 @@ let g:loaded_netrw       = 1
 let g:loaded_netrwPlugin = 1
 let g:loaded_treevial    = 1
 let s:util               = {}
+let s:io                 = {}
 let s:view               = {}
 let s:entry              = {}
 let s:is_nvim            = has('nvim')
@@ -71,20 +72,9 @@ function! treevial#create() abort
   endif
 
   if dest_is_dir
-    if !s:util.mkdirp(destination)
-      return
-    endif
+    if !s:io.mkdirp(destination) | return | endif
   else
-    let dest_dir = fnamemodify(destination, ':h')
-    if isdirectory(dest_dir) || s:util.mkdirp(dest_dir)
-      try
-        if writefile([], destination, 'b') !=? 0
-          throw 1
-        endif
-      catch
-        return s:util.confirm('failed to create file: ' . destination)
-      endtry
-    endif
+    if !s:io.mkfile(destination) | return | endif
   endif
 
   call b:root.sync()
@@ -98,10 +88,10 @@ function! treevial#move() abort
     let entry = get(selection, 0, s:util.lnum_to_entry(line('.')))
 
     if s:util.is_entry(entry)
-      call s:util.handle_move_single_entry(entry)
+      call s:io.handle_move_single_entry(entry)
     endif
   else
-    return s:util.handle_move_multiple_entries(selection)
+    return s:io.handle_move_multiple_entries(selection)
   endif
 endfunction
 
@@ -124,16 +114,7 @@ function! treevial#destroy() abort
           \ })
 
     if choice ==# 2
-      let failed = s:util.delete_all(selection)
-
-      if len(failed)
-        call s:util.confirm({
-              \ 'entries': failed
-              \ 'message': 'could not be removed and will remain marked!',
-              \ 'choices': "&Ok"
-              \ })
-      endif
-
+      call s:io.delete_all(selection)
       call b:root.sync()
       call s:view.render()
     endif
@@ -491,58 +472,6 @@ function! s:entry.has_marked_entries() abort dict
   return 0
 endfunction
 
-function! s:util.duplicate_filenames(entries) abort
-  let duplicates = []
-  let filenames  = uniq(sort(map(copy(a:entries), 'v:val.filename')))
-
-  if len(filenames) < len(a:entries)
-    for filename in filenames
-      let same_named = filter(
-            \ copy(a:entries),
-            \ {_, entry -> entry.filename == filename})
-
-      if len(same_named) >? 1
-        call add(duplicates, [filename, same_named])
-      endif
-    endfor
-  endif
-
-  return duplicates
-endfunction
-
-function! s:util.move_all(entries, destination) abort
-  let failed_entries = []
-  let destination    = substitute(a:destination, '\/\+$', '', '')
-
-  for entry in a:entries
-    try
-      if rename(entry.path, destination . '/' . entry.filename) !=# 0
-        throw 1
-      endif
-    catch
-      call add(failed_entries, entry)
-    endtry
-  endfor
-
-  return failed_entries
-endfunction
-
-function! s:util.delete_all(entries) abort
-  let failed_entries = []
-
-  for entry in a:entries
-    try
-      if delete(entry.path, entry.is_dir ? 'rf' : '') ==# -1
-        throw 1
-      endif
-    catch
-      call add(failed_entries, entry)
-    endtry
-  endfor
-
-  return failed_entries
-endfunction
-
 function s:util.confirm(overrides) abort
   let overrides = type(a:overrides) ==? type('') ? {'message': a:overrides} : a:overrides
   let options = extend(
@@ -613,7 +542,19 @@ function! s:util.pluralize(word, count) abort
   endif
 endfunction
 
-function! s:util.handle_move_multiple_entries(entries) abort
+function! s:util.to_dict(listlist) abort
+  let dict = {}
+
+  for [key, value] in a:listlist
+    let dict[key] = value
+  endfor
+
+  return dict
+endfunction
+" }}}
+
+" {{{ IO helpers
+function! s:io.handle_move_multiple_entries(entries) abort
   let entries              = copy(a:entries)
   let entry_filenames      = uniq(sort(map(copy(entries), 'v:val.filename')))
   let entry_filename_table = s:util.to_dict(map(copy(entry_filenames), '[v:val, []]'))
@@ -625,13 +566,13 @@ function! s:util.handle_move_multiple_entries(entries) abort
 
   if filereadable(dest_path)
     call s:util.confirm(dest_path . ' is a file, please choose a directory')
-    return s:util.handle_move_multiple_entries(entries)
+    return s:io.handle_move_multiple_entries(entries)
   elseif empty(dest_path)
     return
   endif
 
   for entry in entries
-    let errors = s:util.validate_move(entry.path, dest_path . '/' . entry.filename)
+    let errors = s:io.validate_move(entry.path, dest_path . '/' . entry.filename)
 
     call add(entry_filename_table[entry.filename], entry)
 
@@ -690,7 +631,7 @@ function! s:util.handle_move_multiple_entries(entries) abort
     endif
   endif
 
-  if !isdirectory(dest_path) && !s:util.mkdirp(dest_path)
+  if !isdirectory(dest_path) && !s:io.mkdirp(dest_path)
     return
   endif
 
@@ -722,18 +663,18 @@ function! s:util.handle_move_multiple_entries(entries) abort
   endif
 
   for marked in entries
-    call s:util.move(marked.path, dest_path . '/' . marked.filename)
+    call s:io.move(marked.path, dest_path . '/' . marked.filename)
   endfor
 
   call b:root.sync()
   call s:view.render()
 endfunction
 
-function! s:util.handle_move_single_entry(entry) abort
+function! s:io.handle_move_single_entry(entry) abort
   let dest_path   = expand(substitute(input('destination: ', a:entry.path, 'dir'), '\/$', '', ''))
   let dest_parent = fnamemodify(dest_path, ':h')
   let entry_path  = substitute(a:entry.path, '\/$', '', '')
-  let errors      = s:util.validate_move(entry_path, dest_path)
+  let errors      = s:io.validate_move(entry_path, dest_path)
 
   mode
 
@@ -754,17 +695,17 @@ function! s:util.handle_move_single_entry(entry) abort
       return
     endif
   elseif !isdirectory(dest_parent)
-    if !s:util.mkdirp(dest_parent)
+    if !s:io.mkdirp(dest_parent)
       return
     endif
   endif
 
-  call s:util.move(entry_path, dest_path)
+  call s:io.move(entry_path, dest_path)
   call b:root.sync()
   call s:view.render()
 endfunction
 
-function! s:util.move(from, to) abort
+function! s:io.move(from, to) abort
   if rename(a:from, a:to) !=? 0
     return s:util.confirm({
           \ 'entries': [['rename', [{'path': a:from}]],
@@ -773,7 +714,7 @@ function! s:util.move(from, to) abort
   endif
 endfunction
 
-function! s:util.mkdirp(path) abort
+function! s:io.mkdirp(path) abort
   try
     call mkdir(a:path, 'p')
   finally
@@ -786,23 +727,24 @@ function! s:util.mkdirp(path) abort
   endtry
 endfunction
 
-function! s:util.mkdir_removable(path) abort
-  let parts   = split(a:path, '/')
-  let path    = join(parts, '/')
-  let current = ''
-
-  for dirname in parts
-    let current .= '/' . dirname
-
-    if !isdirectory(current)
-      break
-    endif
-  endfor
-
-  return isdirectory(current) ? '' : current
+function s:io.mkfile(destination) abort
+  let dest_dir = fnamemodify(a:destination, ':h')
+  if isdirectory(dest_dir) || s:io.mkdirp(dest_dir)
+    try
+      if writefile([], a:destination, 'b') !=? 0
+        throw 1
+      endif
+      return 1
+    catch
+      call s:util.confirm('failed to create file: ' . a:destination)
+      return 0
+    endtry
+  else
+    return 0
+  endif
 endfunction
 
-function s:util.validate_move(from, to) abort
+function s:io.validate_move(from, to) abort
   let from = substitute(a:from, '\/$', '', '')
   let to   = substitute(a:to, '\/$', '', '')
 
@@ -814,14 +756,29 @@ function s:util.validate_move(from, to) abort
         \ }
 endfunction
 
-function! s:util.to_dict(listlist) abort
-  let dict = {}
+function! s:io.delete_all(entries) abort
+  let failed = []
 
-  for [key, value] in a:listlist
-    let dict[key] = value
+  for entry in a:entries
+    try
+      if delete(entry.path, entry.is_dir ? 'rf' : '') ==# -1
+        throw 1
+      endif
+    catch
+      call add(failed, entry)
+    endtry
   endfor
 
-  return dict
+  if len(failed) >? 0
+    call s:util.confirm({
+          \ 'entries': failed
+          \ 'message': 'could not be removed and will remain marked!',
+          \ 'choices': "&Ok"
+          \ })
+    return 0
+  else
+    return 1
+  endif
 endfunction
 " }}}
 
