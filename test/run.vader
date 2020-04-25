@@ -24,6 +24,9 @@ Expect (buffer lists contents of test/void/):
     with spaces/and again/yo .txt
     exe
     f3.json
+    sort-1.txt
+    sort-2.txt
+    sort-10.txt
     symlinked.json
     woppa.txt
 
@@ -46,5 +49,8 @@ Expect (buffer shows contents nested in void/a/b/):
     with spaces/and again/yo .txt
     exe
     f3.json
+    sort-1.txt
+    sort-2.txt
+    sort-10.txt
     symlinked.json
     woppa.txt

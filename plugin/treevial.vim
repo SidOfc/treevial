@@ -387,7 +387,7 @@ function! s:entry.children() abort dict
         \ glob(root . '/*',  0, 1) + glob(root . '/.*', 0, 1),
         \ {_,  p  -> p !~# '/\.\.\?$'}),
         \ {_,  p  -> s:entry.new(p, root)}),
-        \ {x1, x2 -> x1.name >? x2.name}),
+        \ s:util.compare_filename),
         \ {x1, x2 -> x2.is_dir - x1.is_dir})
 
     call extend(self, {'_children': map(
@@ -553,6 +553,37 @@ function! s:util.to_dict(listlist) abort
   endfor
 
   return dict
+endfunction
+
+" The s:util.compare_filename and s:util.filename_words
+" functions have been shamelessly stolen from:
+" https://github.com/Shougo/vimfiler.vim/blob/master/autoload/vimfiler/helper.vim
+"
+" Thanks Shougo!
+function! s:util.compare_filename(entry1, entry2) abort
+  let words_1 = s:util.filename_words(a:entry1.filename)
+  let words_2 = s:util.filename_words(a:entry2.filename)
+  let words_1_len = len(words_1)
+  let words_2_len = len(words_2)
+
+  for i in range(0, min([words_1_len, words_2_len])-1)
+    if words_1[i] >? words_2[i]
+      return 1
+    elseif words_1[i] <? words_2[i]
+      return -1
+    endif
+  endfor
+
+  return words_1_len - words_2_len
+endfunction
+
+function! s:util.filename_words(filename) abort
+  let words = []
+  for part in split(a:filename, '\d\+\zs\ze')
+    let words += split(part, '\D\zs\ze\d\+')
+  endfor
+
+  return map(words, "v:val =~ '^\\d\\+$' ? str2nr(v:val) : v:val")
 endfunction
 " }}}
 
