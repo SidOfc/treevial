@@ -17,7 +17,7 @@ the best known netrw-enhancement [vim-vinegar](https://github.com/tpope/vim-vine
 at it, at some point I cried in a corner for a while, then decided
 to *screw it* and try it for myself.
 
-I am actually thankful for this experience though. Because due to this frustration, true
+I am actually thankful for this experience though. Because of the frustration, true
 motivation was born and put to use for a (hopefully) more positive experience.
 
 ## Why Treevial?
