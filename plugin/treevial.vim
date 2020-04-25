@@ -359,6 +359,7 @@ function! s:entry.expand(...) abort dict
       call add(symlinks, result_entry.is_symlink)
     endwhile
 
+    call child_entry.update({'symlinks': symlinks})
     if child_entry.path !=# result_entry.path
       call child_entry.update({
             \ 'name': substitute(result_entry.path, self.path, '', ''),
@@ -367,8 +368,7 @@ function! s:entry.expand(...) abort dict
             \ 'is_symlink': result_entry.is_symlink,
             \ 'path': result_entry.path,
             \ 'is_dir': result_entry.is_dir,
-            \ '_children': result_entry.fetched_children(),
-            \ 'symlinks': symlinks
+            \ '_children': result_entry.fetched_children()
             \ })
     endif
   endfor
