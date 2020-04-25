@@ -1,0 +1,6 @@
+Execute (setting up testing environment):
+  chdir test/void
+  Log 'running tests using cwd: ' . getcwd()
+
+Before:
+  Treevial

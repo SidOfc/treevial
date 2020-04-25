@@ -134,6 +134,12 @@ function! s:view.buffer(...) abort
 
   setlocal noru nonu nornu noma nomod ro noswf nospell bufhidden=hide buftype=nowrite
 
+  call b:root.sync()
+  call s:view.mappings()
+  call s:view.render()
+endfunction
+
+function! s:view.mappings() abort
   nnoremap <silent><buffer> v       <Nop>
   nnoremap <silent><buffer> V       <Nop>
   nnoremap <silent><buffer> <Cr>    :call treevial#open()<Cr>
@@ -149,9 +155,6 @@ function! s:view.buffer(...) abort
   if s:is_nvim
     nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
   endif
-
-  call b:root.sync()
-  call s:view.render()
 endfunction
 
 function! s:view.render() abort
