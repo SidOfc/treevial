@@ -17,19 +17,53 @@ Expect (buffer lists contents of test/files/):
   files/
     folded-exe/example.sh
     folded-sym/example.ln
+    folded-sym-exe/example.sh
+    folded-sym-long/example.ln
   + nested/directory/
+    example.ln
+    example.sh
     example.txt
 
 ================================================================================
 
 Do (expand test/files/nested/directory/ using <enter>):
-  3j\<Cr>
+  5j\<Cr>
 
 Expect (buffer shows contents nested in test/files/nested/directory/):
   files/
     folded-exe/example.sh
     folded-sym/example.ln
+    folded-sym-exe/example.sh
+    folded-sym-long/example.ln
   - nested/directory/
       a.txt
       b.txt
+    example.ln
+    example.sh
     example.txt
+
+================================================================================
+
+Do (add nested/directory/c.txt):
+  c/nested/directory/c.txt\<Cr>
+
+Expect (the file to be created):
+  files/
+    folded-exe/example.sh
+    folded-sym/example.ln
+    folded-sym-exe/example.sh
+    folded-sym-long/example.ln
+  - nested/directory/
+      a.txt
+      b.txt
+      c.txt
+    example.ln
+    example.sh
+    example.txt
+
+Execute (clean up created file):
+  if filereadable('nested/directory/c.txt')
+    call delete('nested/directory/c.txt')
+    Treevial
+  endif
+

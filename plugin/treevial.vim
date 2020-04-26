@@ -17,6 +17,20 @@ let s:save_cpo           = &cpo
 set cpo&vim
 " }}}
 
+" for benchmarking, this function takes a callback / function()
+" reference to execute, results will be printed with time taken below results.
+
+" function treevial#bench(callback) abort
+"   let t_start = reltime()
+"   let results = call(a:callback, [])
+"   let t_delta = reltime(t_start)
+
+"   echom '------ start ------'
+"   echom string(results)
+"   echom '------ time  ------ (' split(reltimestr(t_delta))[0] . 'sec )'
+" endfunction
+
+
 " {{{ main functionality
 function! treevial#open(...) abort
   let options = get(a:, 1, {})
@@ -475,7 +489,7 @@ endfunction
 
 function s:util.confirm(overrides) abort
   let overrides = type(a:overrides) ==? type('') ? {'message': a:overrides} : a:overrides
-  let options = extend(
+  let options   = extend(
         \ deepcopy({'choices': '&Ok', 'entries': [], 'default': 1, 'message': 'Confirm'}),
         \ overrides)
 
