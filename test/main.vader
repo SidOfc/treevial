@@ -67,3 +67,26 @@ Execute (clean up created file):
     Treevial
   endif
 
+================================================================================
+
+Do (rename nested/directory/b.txt to nested/directory/d.txt):
+  gg7jm\<Left>\<Left>\<Left>\<Left>\<Bs>d\<Cr>
+
+Expect (the file to be renamed):
+  files/
+    folded-exe/example.sh
+    folded-sym/example.ln
+    folded-sym-exe/example.sh
+    folded-sym-long/example.ln
+  - nested/directory/
+      a.txt
+      d.txt
+    example.ln
+    example.sh
+    example.txt
+
+Execute (reset renamed file):
+  if filereadable('nested/directory/d.txt')
+    call rename('nested/directory/d.txt', 'nested/directory/b.txt')
+    Treevial
+  endif
