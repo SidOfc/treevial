@@ -11,6 +11,8 @@ Execute (buffer has filetype "treevial"):
 Execute (buffer is readonly):
   AssertEqual 1, &ro
 
+================================================================================
+
 Expect (buffer lists contents of test/files/):
   files/
     folded-exe/example.sh
@@ -18,7 +20,9 @@ Expect (buffer lists contents of test/files/):
   + nested/directory/
     example.txt
 
-Do (expand void/a/b/ using <enter>):
+================================================================================
+
+Do (expand test/files/nested/directory/ using <enter>):
   3j\<Cr>
 
 Expect (buffer shows contents nested in test/files/nested/directory/):

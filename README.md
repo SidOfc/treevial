@@ -59,7 +59,7 @@ amount of things I know how to test (somewhat) properly :sweat_smile:. To run th
 use the following command to start (n)vim with minimal required testing setup:
 
 ```sh
-nvim -Nu test.vimrc -c 'Vader test/run.vader'
+nvim -Nu test.vimrc -c 'Vader test/main.vader'
 ```
 
 Using `Vader` instead of `Vader!` keeps (n)vim open to allow for debugging.
