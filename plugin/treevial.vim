@@ -350,30 +350,28 @@ endfunction
 function! s:entry.expand(...) abort dict
   call self.update({'is_open': self.is_dir})
 
-  if !has_key(self, '_children')
-    for child_entry in self.children()
-      let result_entry = child_entry
-      let symlinks     = [result_entry.is_symlink]
+  for child_entry in self.children()
+    let result_entry = child_entry
+    let symlinks     = [result_entry.is_symlink]
 
-      while len(result_entry.children()) ==# 1
-        let result_entry = result_entry.children()[0]
-        call add(symlinks, result_entry.is_symlink)
-      endwhile
+    while len(result_entry.children()) ==# 1
+      let result_entry = result_entry.children()[0]
+      call add(symlinks, result_entry.is_symlink)
+    endwhile
 
-      call child_entry.update({'symlinks': symlinks})
-      if child_entry.path !=# result_entry.path
-        call child_entry.update({
-              \ 'name': substitute(result_entry.path, self.path, '', ''),
-              \ 'filename': result_entry.filename,
-              \ 'is_exe': result_entry.is_exe,
-              \ 'is_symlink': result_entry.is_symlink,
-              \ 'path': result_entry.path,
-              \ 'is_dir': result_entry.is_dir,
-              \ '_children': result_entry.children()
-              \ })
-      endif
-    endfor
-  endif
+    call child_entry.update({'symlinks': symlinks})
+    if child_entry.path !=# result_entry.path
+      call child_entry.update({
+            \ 'name': substitute(result_entry.path, self.path, '', ''),
+            \ 'filename': result_entry.filename,
+            \ 'is_exe': result_entry.is_exe,
+            \ 'is_symlink': result_entry.is_symlink,
+            \ 'path': result_entry.path,
+            \ 'is_dir': result_entry.is_dir,
+            \ '_children': result_entry.children()
+            \ })
+    endif
+  endfor
 
   return self
 endfunction
