@@ -171,44 +171,45 @@ function! s:view.render() abort
   call append(current_lnum, b:root.name)
 
   for [entry, depth] in b:entries
-    let check_symlinks  = 0
-    let current_lnum   += 1
-    let indent_mult     = depth * 2
-    let indent          = repeat(' ', indent_mult)
-    let fname_len       = len(entry.filename)
-    let prefix          = len(entry.fetched_children())
+    let current_lnum += 1
+    let indent_mult   = depth * 2
+    let indent        = repeat(' ', indent_mult)
+    let fname_len     = len(entry.filename)
+    let prefix        = len(entry.fetched_children())
           \ ? entry.is_open ? '- ' : '+ ' : mark_prefix
-    let line            = indent . prefix . entry.name
+    let line          = indent . prefix . entry.name
 
     call append(current_lnum, line)
 
-    if entry.is_exe
-      call matchaddpos('TreevialExecutable', [[current_lnum + 1, len(line) - fname_len + 1, fname_len]])
-    endif
-
-    for symlink in entry.symlinks
-      if symlink
-        let check_symlinks = 1
-        break
-      endif
-    endfor
-
-    if check_symlinks
+    if index(entry.symlinks, 1) >? -1
       let parts  = split(substitute(entry.name, '\/\+$', '', ''), '/')
       let column = len(line)
       let is_dir = entry.is_dir
+      let positions = []
+
       for idx in reverse(range(0, len(parts) - 1))
-        if get(entry.symlinks, idx, 0)
-          let part       = get(parts, idx, '')
-          let part_len   = len(part)
-          let column    -= part_len
-          call matchaddpos(
-                \ 'TreevialSymlink',
-                \ [[current_lnum + 1, column + 1, part_len + (!is_dir)]])
-          let column    -= 1
-          let is_dir     = 1
+        if get(entry.symlinks, idx)
+          let part      = get(parts, idx, '')
+          let part_len  = len(part)
+          let column   -= part_len
+
+          call add(positions, [current_lnum + 1, column + 1, part_len + (!is_dir)])
+
+          let column -= 1
+          let is_dir  = 1
+        endif
+
+        let pos_len = len(positions)
+
+        if idx ==? 0 && pos_len >? 0 || pos_len ==? 8
+          call matchaddpos('TreevialSymlink', positions)
+          let positions = []
         endif
       endfor
+    endif
+
+    if entry.is_exe
+      call matchaddpos('TreevialExecutable', [[current_lnum + 1, len(line) - fname_len + 1, fname_len]])
     endif
 
     if entry.is_marked

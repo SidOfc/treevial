@@ -35,6 +35,7 @@ motivation was born and put to use for a (hopefully) more positive experience.
 
 ## Why not Treevial
 
+- Heavily dependent on colors to indicate symlinks / executables / marks (e.g. not colorblind friendly at the moment, feel free to tip me off though!)
 - Treevial is in early stages of development, it has no README, wiki or
   doc/treevial.txt file of any significance.
 - Does not support left / right sidebar style display / popout mode yet
