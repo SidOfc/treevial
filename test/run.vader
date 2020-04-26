@@ -11,46 +11,21 @@ Execute (buffer has filetype "treevial"):
 Execute (buffer is readonly):
   AssertEqual 1, &ro
 
-Expect (buffer lists contents of test/void/):
-  void/
-  + a/b/
-  + b/
-    bin/exe
-  + dd/aa/bb/
-    empty/empty2/lies.c/hello/world.txt
-    empty2/lies.c/hello/world.txt
-  + lots/
-    symlink/derp.exe
-    with spaces/and again/yo .txt
-    exe
-    f3.json
-    sort-1.txt
-    sort-2.txt
-    sort-10.txt
-    symlinked.json
-    woppa.txt
+Expect (buffer lists contents of test/files/):
+  files/
+    folded-exe/example.sh
+    folded-sym/example.ln
+  + nested/directory/
+    example.txt
 
 Do (expand void/a/b/ using <enter>):
-  j\<Cr>
+  3j\<Cr>
 
-Expect (buffer shows contents nested in void/a/b/):
-  void/
-  - a/b/
-      c/d/
-      e/
-      f1.txt
-  + b/
-    bin/exe
-  + dd/aa/bb/
-    empty/empty2/lies.c/hello/world.txt
-    empty2/lies.c/hello/world.txt
-  + lots/
-    symlink/derp.exe
-    with spaces/and again/yo .txt
-    exe
-    f3.json
-    sort-1.txt
-    sort-2.txt
-    sort-10.txt
-    symlinked.json
-    woppa.txt
+Expect (buffer shows contents nested in test/files/nested/directory/):
+  files/
+    folded-exe/example.sh
+    folded-sym/example.ln
+  - nested/directory/
+      a.txt
+      b.txt
+    example.txt
