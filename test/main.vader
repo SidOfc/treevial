@@ -25,6 +25,7 @@ Expect (buffer lists contents of test/files/):
     folded-sym-exe/example.sh
     folded-sym-long/example.ln
   + nested/directory/
+    broken.ln
     example.ln
     example.sh
     example.txt
@@ -41,6 +42,7 @@ Expect (buffer shows contents nested in test/files/nested/directory/):
   • folded-sym-exe/example.sh
   • folded-sym-long/example.ln
   + nested/directory/
+  • broken.ln
   • example.ln
   • example.sh
   • example.txt
@@ -55,6 +57,7 @@ Expect (buffer lists contents of test/files/):
     folded-sym-exe/example.sh
     folded-sym-long/example.ln
   + nested/directory/
+    broken.ln
     example.ln
     example.sh
     example.txt
@@ -73,6 +76,7 @@ Expect (buffer shows contents nested in test/files/nested/directory/):
   - nested/directory/
       a.txt
       b.txt
+    broken.ln
     example.ln
     example.sh
     example.txt

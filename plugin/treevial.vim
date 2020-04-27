@@ -186,6 +186,7 @@ function! s:view.render() abort
   call append(current_lnum, b:root.name)
 
   for [entry, depth] in b:entries
+    let check_links   = 0
     let current_lnum += 1
     let indent_mult   = depth * 2
     let indent        = repeat(' ', indent_mult)
@@ -196,29 +197,45 @@ function! s:view.render() abort
 
     call append(current_lnum, line)
 
-    if index(entry.symlinks, 1) >? -1
-      let parts  = split(substitute(entry.name, '\/\+$', '', ''), '/')
-      let column = len(line)
-      let is_dir = entry.is_dir
-      let positions = []
+    for link in entry.symlinks
+      if link >? 0
+        let check_links = 1
+        break
+      endif
+    endfor
+
+    if check_links
+      let parts            = split(substitute(entry.name, '\/\+$', '', ''), '/')
+      let column           = len(line)
+      let is_dir           = entry.is_dir
+      let positions        = []
+      let broken_positions = []
 
       for idx in reverse(range(0, len(parts) - 1))
-        if get(entry.symlinks, idx)
-          let part      = get(parts, idx, '')
-          let part_len  = len(part)
-          let column   -= part_len
+        let symlink_status = get(entry.symlinks, idx)
+        if symlink_status
+          let part        = get(parts, idx, '')
+          let part_len    = len(part)
+          let column     -= part_len
+          let add_target  = symlink_status ==? 2 ? broken_positions : positions
 
-          call add(positions, [current_lnum + 1, column + 1, part_len + (!is_dir)])
+          call add(add_target, [current_lnum + 1, column + 1, part_len + (!is_dir)])
 
           let column -= 1
           let is_dir  = 1
         endif
 
-        let pos_len = len(positions)
+        let pos_len        = len(positions)
+        let broken_pos_len = len(broken_positions)
 
         if idx ==? 0 && pos_len >? 0 || pos_len ==? 8
           call matchaddpos('TreevialSymlink', positions)
           let positions = []
+        endif
+
+        if idx ==? 0 && broken_pos_len >? 0 || broken_pos_len ==? 8
+          call matchaddpos('TreevialBrokenSymlink', broken_positions)
+          let broken_positions = []
         endif
       endfor
     endif
@@ -247,12 +264,16 @@ function! s:entry.new(path, ...) abort
   let is_dir = isdirectory(a:path)
   let root   = get(a:, 1, fnamemodify(a:path, ':h'))
   let path   = fnamemodify(a:path, ':p')
+  let resolved = resolve(a:path)
+  let is_ln  = a:path !=? resolved
 
   return extend(deepcopy(s:entry), {
         \ 'name': substitute(path, root, '', '')[1:],
         \ 'filename': get(split(path, '/'), -1, ''),
         \ 'path': path,
-        \ 'is_symlink': a:path !=? resolve(a:path),
+        \ 'is_symlink': is_ln
+        \   ? (is_dir ? isdirectory(resolved) : filereadable(resolved)) ? 1 : 2
+        \   : 0,
         \ 'is_dir': is_dir,
         \ 'is_exe': executable(path),
         \ 'is_open': 0,
@@ -355,7 +376,7 @@ function! s:entry.children() abort dict
   if self.is_dir && !has_key(self, '_children')
     let root     = substitute(self.path, '/\+$', '', '')
     let children = sort(sort(map(filter(
-        \ glob(root . '/*',  0, 1) + glob(root . '/.*', 0, 1),
+        \ glob(root . '/*',  0, 1, 1) + glob(root . '/.*', 0, 1, 1),
         \ {_,  p  -> p !~# '/\.\.\?$'}),
         \ {_,  p  -> s:entry.new(p, root)}),
         \ s:util.compare_filename),
