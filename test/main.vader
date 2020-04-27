@@ -31,8 +31,38 @@ Expect (buffer lists contents of test/files/):
 
 ================================================================================
 
+Do (creating a selection using <Tab> shows selection marks):
+  ggj\<Tab>
+
+Expect (buffer shows contents nested in test/files/nested/directory/):
+  files/
+  • folded-exe/example.sh
+  • folded-sym/example.ln
+  • folded-sym-exe/example.sh
+  • folded-sym-long/example.ln
+  + nested/directory/
+  • example.ln
+  • example.sh
+  • example.txt
+
+Do (unmarking all using <u> hides selection marks):
+  u
+
+Expect (buffer lists contents of test/files/):
+  files/
+    folded-exe/example.sh
+    folded-sym/example.ln
+    folded-sym-exe/example.sh
+    folded-sym-long/example.ln
+  + nested/directory/
+    example.ln
+    example.sh
+    example.txt
+
+================================================================================
+
 Do (expand test/files/nested/directory/ using <enter>):
-  5j\<Cr>
+  gg5j\<Cr>
 
 Expect (buffer shows contents nested in test/files/nested/directory/):
   files/
@@ -55,7 +85,7 @@ Execute (create test setup):
   endif
 
 Do (add nested/directory/c.txt):
-  c/nested/directory/c.txt\<Cr>
+  ggc/nested/directory/c.txt\<Cr>
 
 Execute (nested/directory/c.txt exists):
   Assert filereadable('nested/directory/c.txt')
