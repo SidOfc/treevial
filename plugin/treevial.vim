@@ -7,6 +7,7 @@ let g:loaded_netrw       = 1
 let g:loaded_netrwPlugin = 1
 let g:loaded_treevial    = 1
 let s:util               = {}
+let s:test               = {}
 let s:io                 = {}
 let s:view               = {}
 let s:entry              = {}
@@ -241,48 +242,6 @@ function! s:view.render() abort
 endfunction
 " }}}
 
-" {{{ s:util helpers
-function! s:util.lnum_to_entry(lnum) abort
-  return a:lnum >? 1 ? get(get(b:entries, a:lnum - 2, []), 0, 0) : 0
-endfunction
-
-function! s:util.keep_cursor_below_root() abort
-  if line('.') <=? 1
-    call cursor(2, col('.'))
-  endif
-endfunction
-
-function! s:util.winrestview(position) abort
-  let curr_winnr = winnr()
-  let windows    = filter(map(
-        \ win_findbuf(bufnr('%')),
-        \ 'win_id2win(v:val)'),
-        \ 'v:val !=# ' . curr_winnr)
-
-  for winnr in windows
-    exe winnr . 'wincmd w'
-    call winrestview(a:position)
-  endfor
-
-  exe curr_winnr . 'wincmd w'
-  call winrestview(a:position)
-endfunction
-
-function! s:util.clear_buffer() abort
-  call deletebufline('%', 1, line('$')) | echo ''
-endfunction
-
-function! s:util.clear_trailing_empty_lines() abort
-  while empty(getline('$'))
-    call deletebufline('%', line('$'))
-  endwhile | echo ''
-endfunction
-
-function! s:util.is_entry(entry) abort
-  return type(a:entry) ==# type({})
-endfunction
-" }}}
-
 " {{{ s:entry model + helpers
 function! s:entry.new(path, ...) abort
   let is_dir = isdirectory(a:path)
@@ -486,8 +445,54 @@ function! s:entry.has_marked_entries() abort dict
 
   return 0
 endfunction
+" }}}
 
-function s:util.confirm(overrides) abort
+" {{{ s:util helpers
+function! s:util.lnum_to_entry(lnum) abort
+  return a:lnum >? 1 ? get(get(b:entries, a:lnum - 2, []), 0, 0) : 0
+endfunction
+
+function! s:util.keep_cursor_below_root() abort
+  if line('.') <=? 1
+    call cursor(2, col('.'))
+  endif
+endfunction
+
+function! s:util.winrestview(position) abort
+  let curr_winnr = winnr()
+  let windows    = filter(map(
+        \ win_findbuf(bufnr('%')),
+        \ 'win_id2win(v:val)'),
+        \ 'v:val !=# ' . curr_winnr)
+
+  for winnr in windows
+    exe winnr . 'wincmd w'
+    call winrestview(a:position)
+  endfor
+
+  exe curr_winnr . 'wincmd w'
+  call winrestview(a:position)
+endfunction
+
+function! s:util.clear_buffer() abort
+  call deletebufline('%', 1, line('$')) | echo ''
+endfunction
+
+function! s:util.clear_trailing_empty_lines() abort
+  while empty(getline('$'))
+    call deletebufline('%', line('$'))
+  endwhile | echo ''
+endfunction
+
+function! s:util.is_entry(entry) abort
+  return type(a:entry) ==# type({})
+endfunction
+
+function! s:util.confirm(overrides) abort
+  if s:test.vader_confirmed()
+    return s:test.vader_confirm_answer()
+  endif
+
   let overrides = type(a:overrides) ==? type('') ? {'message': a:overrides} : a:overrides
   let options   = extend(
         \ deepcopy({'choices': '&Ok', 'entries': [], 'default': 1, 'message': 'Confirm'}),
@@ -855,6 +860,18 @@ augroup Treevial
   autocmd CursorMoved treevial
         \ call s:util.keep_cursor_below_root()
 augroup END
+" }}}
+
+" {{{ test 'helpers'
+function! s:test.vader_confirmed() abort
+  return get(g:, '__treevial_vader_confirm_reply__', '') != ''
+endfunction
+
+function! s:test.vader_confirm_answer() abort
+  let answer = g:__treevial_vader_confirm_reply__
+  unlet g:__treevial_vader_confirm_reply__
+  return answer
+endfunction
 " }}}
 
 " {{{ script teardown

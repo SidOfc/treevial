@@ -49,7 +49,7 @@ Expect (buffer shows contents nested in test/files/nested/directory/):
 
 ================================================================================
 
-Execute (remove nested/directory/c.txt if it exists):
+Execute (create test setup):
   if filereadable('nested/directory/c.txt')
     call delete('nested/directory/c.txt') | Treevial
   endif
@@ -60,13 +60,14 @@ Do (add nested/directory/c.txt):
 Execute (nested/directory/c.txt exists):
   Assert filereadable('nested/directory/c.txt')
 
+Then (create test cleanup):
   if filereadable('nested/directory/c.txt')
     call delete('nested/directory/c.txt') | Treevial
   endif
 
 ================================================================================
 
-Execute (un-rename nested/directory/1.txt if it exists):
+Execute (rename test setup):
   if filereadable('nested/directory/1.txt')
     call rename('nested/directory/1.txt', 'nested/directory/a.txt') | Treevial
   endif
@@ -78,6 +79,27 @@ Execute (nested/directory/1.txt exists):
   Assert filereadable('nested/directory/1.txt')
   Assert !filereadable('nested/directory/a.txt')
 
+Then (rename test cleanup):
   if filereadable('nested/directory/1.txt')
     call rename('nested/directory/1.txt', 'nested/directory/a.txt') | Treevial
+  endif
+
+================================================================================
+
+Execute (delete test setup):
+  let g:__treevial_vader_confirm_reply__ = 2
+
+  if !filereadable('z.txt')
+    call writefile([], 'z.txt', 'b') | Treevial
+  endif
+
+Do (delete rm.txt with confirm):
+  Gd
+
+Execute (delete dummy z.txt if it exists):
+  Assert !filereadable('z.txt')
+
+Then (delete test cleanup):
+  if filereadable('rm.txt')
+    call delete('rm.txt') | Treevial
   endif
