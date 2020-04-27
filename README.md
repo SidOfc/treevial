@@ -53,6 +53,10 @@ This loads (n)vim in **N**ocompatible mode, **u**sing provided **dev.vimrc**.
 
 ## Testing
 
+Treevial uses [junegunn/vader.vim](https://github.com/junegunn/vader.vim) as its testing framework.
+It assumes `vader.vim` is installed in `$HOME/.vim/plugged/vader.vim` currently.
+This may change in the future!
+
 There is only a limited amount of tests available since there's only a limited
 amount of things I know how to test (somewhat) properly :sweat_smile:. To run the tests,
 use the following command to start (n)vim with minimal required testing setup:
