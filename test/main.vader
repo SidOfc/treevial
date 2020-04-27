@@ -100,6 +100,6 @@ Execute (delete dummy z.txt if it exists):
   Assert !filereadable('z.txt')
 
 Then (delete test cleanup):
-  if filereadable('rm.txt')
-    call delete('rm.txt') | Treevial
+  if filereadable('z.txt')
+    call delete('z.txt') | Treevial
   endif
