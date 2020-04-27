@@ -93,7 +93,7 @@ Execute (delete test setup):
     call writefile([], 'z.txt', 'b') | Treevial
   endif
 
-Do (delete rm.txt with confirm):
+Do (delete z.txt with confirm):
   Gd
 
 Execute (delete dummy z.txt if it exists):
