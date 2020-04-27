@@ -22,7 +22,7 @@ motivation was born and put to use for a (hopefully) more positive experience.
 
 ## Why Treevial?
 
-- <1k total LoC (this will likely grow beyond 1K before initial release, we'll see)
+- **Treevial does not leave buffers `&modified` AND `&readonly`**
 - Treevial has one clear view mode: Tree view.
 - Treevial supports "single file/folder" merging like github.
 - Treevial has 3 "sane" mappings for performing file actions:
@@ -33,15 +33,13 @@ motivation was born and put to use for a (hopefully) more positive experience.
   - <kbd>tab</kbd>: Toggle mark and move to next line
   - <kbd>shift</kbd>+<kbd>tab</kbd>: Toggle mark and move to previous line
 
-## Why not Treevial
+## Roadmap
 
-- Heavily dependent on colors to indicate symlinks / executables / marks (e.g. not colorblind friendly at the moment, feel free to tip me off though!)
-- Treevial is in early stages of development, it has no README, wiki or
-  doc/treevial.txt file of any significance.
-- Does not support left / right sidebar style display / popout mode yet
-- Mappings are not configurable at the moment.
-- The amount of `glob()` calls can be cut down by using a single recursive
-  search tool such as ripgrep.
+- [ ] Completely isolate tests from each other.
+- [ ] Support "sidebar" style.
+- [ ] Make colors configurable to allow for colorblind-friendly schemes.
+- [ ] Make mappings configurable.
+- [ ] Document, document, document, document, document!!
 
 ## Development
 
