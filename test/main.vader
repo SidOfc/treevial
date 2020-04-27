@@ -1,4 +1,9 @@
-Include: setup.vader
+Execute (setting up testing environment):
+  chdir test/files
+  Log 'running tests using cwd: ' . getcwd()
+
+Before:
+  Treevial
 
 ================================================================================
 
@@ -44,49 +49,35 @@ Expect (buffer shows contents nested in test/files/nested/directory/):
 
 ================================================================================
 
+Execute (remove nested/directory/c.txt if it exists):
+  if filereadable('nested/directory/c.txt')
+    call delete('nested/directory/c.txt') | Treevial
+  endif
+
 Do (add nested/directory/c.txt):
   c/nested/directory/c.txt\<Cr>
 
-Expect (the file to be created):
-  files/
-    folded-exe/example.sh
-    folded-sym/example.ln
-    folded-sym-exe/example.sh
-    folded-sym-long/example.ln
-  - nested/directory/
-      a.txt
-      b.txt
-      c.txt
-    example.ln
-    example.sh
-    example.txt
+Execute (nested/directory/c.txt exists):
+  Assert filereadable('nested/directory/c.txt')
 
-Execute (clean up created file):
   if filereadable('nested/directory/c.txt')
-    call delete('nested/directory/c.txt')
-    Treevial
+    call delete('nested/directory/c.txt') | Treevial
   endif
 
 ================================================================================
 
+Execute (un-rename nested/directory/1.txt if it exists):
+  if filereadable('nested/directory/1.txt')
+    call rename('nested/directory/1.txt', 'nested/directory/a.txt') | Treevial
+  endif
+
 Do (rename nested/directory/b.txt to nested/directory/d.txt):
-  gg7jm\<Left>\<Left>\<Left>\<Left>\<Bs>d\<Cr>
+  gg6jm\<Left>\<Left>\<Left>\<Left>\<Bs>1\<Cr>
 
-Expect (the file to be renamed):
-  files/
-    folded-exe/example.sh
-    folded-sym/example.ln
-    folded-sym-exe/example.sh
-    folded-sym-long/example.ln
-  - nested/directory/
-      a.txt
-      d.txt
-    example.ln
-    example.sh
-    example.txt
+Execute (nested/directory/1.txt exists):
+  Assert filereadable('nested/directory/1.txt')
+  Assert !filereadable('nested/directory/a.txt')
 
-Execute (reset renamed file):
-  if filereadable('nested/directory/d.txt')
-    call rename('nested/directory/d.txt', 'nested/directory/b.txt')
-    Treevial
+  if filereadable('nested/directory/1.txt')
+    call rename('nested/directory/1.txt', 'nested/directory/a.txt') | Treevial
   endif

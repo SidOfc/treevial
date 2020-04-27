@@ -1,6 +1,0 @@
-Execute (setting up testing environment):
-  chdir test/files
-  Log 'running tests using cwd: ' . getcwd()
-
-Before:
-  Treevial
