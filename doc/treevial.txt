@@ -9,6 +9,8 @@
 ==============================================================================
 TABLE OF CONTENTS                                                 *treevial-toc*
 
+  To quickly jump to this global table of contents, use |gg| or |go|.
+
   This section describes the global table of contents, to view the contents
   of a specific topic, jump there first using :h treevial-[topic] with one
   of the topics listed below:
