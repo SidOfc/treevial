@@ -31,7 +31,6 @@ set cpo&vim
 "   echom '------ time  ------ (' split(reltimestr(t_delta))[0] . 'sec )'
 " endfunction
 
-
 " {{{ main functionality
 function! treevial#open(...) abort
   let options = get(a:, 1, {})
