@@ -1,8 +1,10 @@
 *treevial.txt*                                            a plain directory tree
 *treevial*
 
-  `Author:  Sidney Liebrand <sidneyliebrand@gmail.com>`
-  `Version: 0.1.0`
+  `Version:  0.1.0`
+  `Licence:  MIT`
+  `Source:   https://github.com/SidOfc/treevial`
+  `Author:   Sidney Liebrand <sidneyliebrand@gmail.com>`
 
 ==============================================================================
 TABLE OF CONTENTS                                                 *treevial-toc*
@@ -166,8 +168,8 @@ HIGHLIGHTING                                 *treevial-hl* *treevial-highlightin
   files / directories      TreevialPartialMark
 
   To get information about any of the above highlight groups, please consult
-  Vim's amazing help system to find out more about applied colors, for
-  example, to get info about symlink highlighting:
+  Vim's |:verbose| command to find out more about applied colors, for example,
+  to get info about symlink highlighting:
 
   `:verbose hi TreevialSymlink`
 
