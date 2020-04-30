@@ -1,6 +1,6 @@
 # Treevial
 
-:warning::construction: Treevial is under development! :warning::construction:
+:warning::construction: Treevial is under development! :construction::warning:
 
 Treevial is yet another file explorer for (n)vim. With this plugin enabled,
 Netrw will be disabled and Treevial will launch instead.
