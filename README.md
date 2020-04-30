@@ -37,7 +37,6 @@ motivation was born and put to use for a (hopefully) more positive experience.
 
 - [ ] Completely isolate tests from each other.
 - [ ] Support "sidebar" style.
-- [ ] Make colors configurable to allow for colorblind-friendly schemes.
 - [ ] Make mappings configurable.
 - [ ] Document, document, document, document, document!!
 
