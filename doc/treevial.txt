@@ -153,11 +153,11 @@ HIGHLIGHTING                                 *treevial-hl* *treevial-highlightin
   symlink                  TreevialSymlink
   broken symlink           TreevialBrokenSymlink
 
-  Besides marking files and directories, there are is an extra highlight
-  group for the directory open / closed indicator:
+  Besides marking files and directories, there is an extra highlight group
+  for the directory open / closed indicator:
 
   WHAT                     HIGHLIGHT GROUP ~
-  directory open / closed  TreevialDirState
+  directory marker         TreevialDirState
 
   When starting a selection, a special mode is activated with the following
   highlighting rules:
