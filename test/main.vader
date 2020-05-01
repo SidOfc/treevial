@@ -1,159 +1,215 @@
-Execute (setting up testing environment):
-  chdir test/files
+Execute (setting up test environment and helpers):
   Log 'running tests using cwd: ' . getcwd()
 
-Before:
-  Treevial
+  function! TestSetup(...) abort
+    call mkdir('tmp-test', 'p')
+    chdir tmp-test
+    call TestWith(get(a:000, 0, []))
+  endfunction
+
+  function! TestWith(paths) abort
+    let root = getcwd()
+    for path in a:paths
+      let abs_path      = root . '/' . path
+      let parent_dir    = fnamemodify(abs_path, ':h')
+      if path =~? '.::.'
+        let assume_exists = path =~? '^!'
+        let [from, to]    = split(path[(assume_exists):], '::')
+        let abs_from      = root . '/' . from
+        let abs_to        = root . '/' . to
+        let abs_to_dir    = fnamemodify(substitute(abs_to, '/$', '', ''), ':h')
+
+        if !assume_exists
+          call TestWith([from])
+        endif
+
+        call mkdir(abs_to_dir, 'p')
+        call system('ln -s ' . shellescape(abs_from) . ' ' . shellescape(abs_to))
+      elseif path =~? '*$'
+        call mkdir(parent_dir, 'p')
+        call writefile([], abs_path[:-2], 'b')
+        call system('chmod +x ' . shellescape(abs_path[:-2]))
+      elseif path =~? '/$'
+        call mkdir(abs_path, 'p')
+      else
+        call mkdir(parent_dir, 'p')
+        call writefile([], abs_path, 'b')
+      endif
+    endfor
+    Treevial!
+  endfunction
+
+  function! TestTeardown() abort
+    chdir! -
+    call delete('tmp-test', 'rf')
+  endfunction
 
 ================================================================================
+
+Execute (<<<<<<<<<<<<<<<<<<<<<<<<<<):
+  call TestSetup()
 
 Execute (buffer has name "treevial"):
   Assert bufexists('treevial')
 
 Execute (buffer has filetype "treevial"):
-  AssertEqual 'treevial', &ft
+  AssertEqual 'treevial', getbufvar('treevial', '&filetype')
 
 Execute (buffer is readonly):
-  AssertEqual 1, &ro
+  AssertEqual 1, getbufvar('treevial', '&readonly')
+
+Execute (>>>>>>>>>>>>>>>>>>>>>>>>>>):
+  call TestTeardown()
 
 ================================================================================
 
-Expect (buffer lists contents of test/files/):
-  files/
-    folded-exe/example.sh
-    folded-sym/example.ln
-    folded-sym-exe/example.sh
-    folded-sym-long/example.ln
-  + nested/directory/
+Execute (<<<<<<<<<<<<<<<<<<<<<<<<<<):
+  call TestSetup([
+    \ 'example.txt',
+    \ 'example.sh*',
+    \ 'example.sh::example.ln',
+    \ '!broken::broken.ln',
+    \ 'folded/directory',
+    \ 'folded/file/example.txt',
+    \ 'folded/directory::another'
+    \ ])
+
+Expect (buffer lists contents):
+  tmp-test/
+  + folded/
+    another
     broken.ln
     example.ln
     example.sh
     example.txt
 
-================================================================================
-
-Do (creating a selection using <Tab> shows selection marks):
-  ggj\<Tab>
-
-Expect (buffer shows contents nested in test/files/nested/directory/):
-  files/
-  • folded-exe/example.sh
-  • folded-sym/example.ln
-  • folded-sym-exe/example.sh
-  • folded-sym-long/example.ln
-  + nested/directory/
-  • broken.ln
-  • example.ln
-  • example.sh
-  • example.txt
-
-Do (unmarking all using <u> hides selection marks):
-  u
-
-Expect (buffer lists contents of test/files/):
-  files/
-    folded-exe/example.sh
-    folded-sym/example.ln
-    folded-sym-exe/example.sh
-    folded-sym-long/example.ln
-  + nested/directory/
-    broken.ln
-    example.ln
-    example.sh
-    example.txt
+Execute (>>>>>>>>>>>>>>>>>>>>>>>>>>):
+  call TestTeardown()
 
 ================================================================================
 
-Do (expand test/files/nested/directory/ using <enter>):
-  gg5j\<Cr>
+" Do (creating a selection using <Tab> shows selection marks):
+"   ggj\<Tab>
 
-Expect (buffer shows contents nested in test/files/nested/directory/):
-  files/
-    folded-exe/example.sh
-    folded-sym/example.ln
-    folded-sym-exe/example.sh
-    folded-sym-long/example.ln
-  - nested/directory/
-      a.txt
-      b.txt
-    broken.ln
-    example.ln
-    example.sh
-    example.txt
+" Expect (buffer shows contents nested in test/files/nested/directory/):
+"   files/
+"   • folded-exe/example.sh
+"   • folded-sym/example.ln
+"   • folded-sym-exe/example.sh
+"   • folded-sym-long/example.ln
+"   + nested/directory/
+"   • broken.ln
+"   • example.ln
+"   • example.sh
+"   • example.txt
 
-================================================================================
+" Do (unmarking all using <u> hides selection marks):
+"   u
 
-Execute (create test setup):
-  if filereadable('nested/directory/c.txt')
-    call delete('nested/directory/c.txt') | Treevial
-  endif
-
-Do (add nested/directory/c.txt):
-  ggc/nested/directory/c.txt\<Cr>
-
-Execute (nested/directory/c.txt exists):
-  Assert filereadable('nested/directory/c.txt')
-
-Then (create test cleanup):
-  if filereadable('nested/directory/c.txt')
-    call delete('nested/directory/c.txt') | Treevial
-  endif
+" Expect (buffer lists contents of test/files/):
+"   files/
+"     folded-exe/example.sh
+"     folded-sym/example.ln
+"     folded-sym-exe/example.sh
+"     folded-sym-long/example.ln
+"   + nested/directory/
+"     broken.ln
+"     example.ln
+"     example.sh
+"     example.txt
 
 ================================================================================
 
-Execute (rename test setup):
-  if filereadable('nested/directory/1.txt')
-    call rename('nested/directory/1.txt', 'nested/directory/a.txt') | Treevial
-  endif
+" Do (expand test/files/nested/directory/ using <enter>):
+"   gg5j\<Cr>
 
-Do (rename nested/directory/b.txt to nested/directory/d.txt):
-  gg6jm\<Left>\<Left>\<Left>\<Left>\<Bs>1\<Cr>
-
-Execute (nested/directory/a.txt renamed to nested/directory/1.txt):
-  Assert filereadable('nested/directory/1.txt')
-  Assert !filereadable('nested/directory/a.txt')
-
-Then (rename test cleanup):
-  if filereadable('nested/directory/1.txt')
-    call rename('nested/directory/1.txt', 'nested/directory/a.txt') | Treevial
-  endif
-
-================================================================================
-
-Execute (delete confirmed test setup):
-  let g:__treevial_vader_confirm_reply__ = 2
-
-  if !filereadable('z.txt')
-    call writefile([], 'z.txt', 'b') | Treevial
-  endif
-
-Do (delete z.txt with confirm):
-  Gd
-
-Execute (z.txt is deleted):
-  Assert !filereadable('z.txt')
-
-Then (delete confirmed test cleanup):
-  if filereadable('z.txt')
-    call delete('z.txt') | Treevial
-  endif
+" Expect (buffer shows contents nested in test/files/nested/directory/):
+"   files/
+"     folded-exe/example.sh
+"     folded-sym/example.ln
+"     folded-sym-exe/example.sh
+"     folded-sym-long/example.ln
+"   - nested/directory/
+"       a.txt
+"       b.txt
+"     broken.ln
+"     example.ln
+"     example.sh
+"     example.txt
 
 ================================================================================
 
-Execute (cancel delete test setup):
-  let g:__treevial_vader_confirm_reply__ = 1
+" Execute (create test setup):
+"   if filereadable('nested/directory/c.txt')
+"     call delete('nested/directory/c.txt') | Treevial
+"   endif
 
-  if !filereadable('z.txt')
-    call writefile([], 'z.txt', 'b') | Treevial
-  endif
+" Do (add nested/directory/c.txt):
+"   ggc/nested/directory/c.txt\<Cr>
 
-Do (cancel deletion of z.txt):
-  Gd
+" Execute (nested/directory/c.txt exists):
+"   Assert filereadable('nested/directory/c.txt')
 
-Execute (z.txt is not deleted):
-  Assert filereadable('z.txt')
+" Then (create test cleanup):
+"   if filereadable('nested/directory/c.txt')
+"     call delete('nested/directory/c.txt') | Treevial
+"   endif
 
-Then (cancel delete test cleanup):
-  if filereadable('z.txt')
-    call delete('z.txt') | Treevial
-  endif
+================================================================================
+
+" Execute (rename test setup):
+"   if filereadable('nested/directory/1.txt')
+"     call rename('nested/directory/1.txt', 'nested/directory/a.txt') | Treevial
+"   endif
+
+" Do (rename nested/directory/b.txt to nested/directory/d.txt):
+"   gg6jm\<Left>\<Left>\<Left>\<Left>\<Bs>1\<Cr>
+
+" Execute (nested/directory/a.txt renamed to nested/directory/1.txt):
+"   Assert filereadable('nested/directory/1.txt')
+"   Assert !filereadable('nested/directory/a.txt')
+
+" Then (rename test cleanup):
+"   if filereadable('nested/directory/1.txt')
+"     call rename('nested/directory/1.txt', 'nested/directory/a.txt') | Treevial
+"   endif
+
+================================================================================
+
+" Execute (delete confirmed test setup):
+"   let g:__treevial_vader_confirm_reply__ = 2
+
+"   if !filereadable('z.txt')
+"     call writefile([], 'z.txt', 'b') | Treevial
+"   endif
+
+" Do (delete z.txt with confirm):
+"   Gd
+
+" Execute (z.txt is deleted):
+"   Assert !filereadable('z.txt')
+
+" Then (delete confirmed test cleanup):
+"   if filereadable('z.txt')
+"     call delete('z.txt') | Treevial
+"   endif
+
+================================================================================
+
+" Execute (cancel delete test setup):
+"   let g:__treevial_vader_confirm_reply__ = 1
+
+"   if !filereadable('z.txt')
+"     call writefile([], 'z.txt', 'b') | Treevial
+"   endif
+
+" Do (cancel deletion of z.txt):
+"   Gd
+
+" Execute (z.txt is not deleted):
+"   Assert filereadable('z.txt')
+
+" Then (cancel delete test cleanup):
+"   if filereadable('z.txt')
+"     call delete('z.txt') | Treevial
+"   endif
