@@ -18,6 +18,7 @@ TABLE OF CONTENTS                                                 *treevial-toc*
   of the topics listed below:
 
   MAPPINGS ................. |treevial-mappings|
+  CUSTOM MAPPINGS .......... |treevial-custom-mappings|
   HIGHLIGHTING ............. |treevial-highlighting|
 
 ==============================================================================
@@ -166,6 +167,61 @@ MAPPINGS                                                     *treevial-mappings*
   copied "into" themselves or would otherwise overwrite the directory
   they would be moved from, the user can choose to cancel or unmark
   and continue.
+
+==============================================================================
+CUSTOM MAPPINGS                                       *treevial-custom-mappings*
+
+  Treevial understands that it must not interfere with user defined mappings.
+  While it does not perform lots of magic checks, there is a way to disable
+  all mappings that Treevial defines otherwise.
+
+  To disable the default mappings, set `g:treevial_default_mappings = 0` in
+  your vimrc. If it is not set, it will default to `1` unless |v:version|
+  is below `703`. This is because the default mappings use <nowait> which
+  is not supported before (n)vim version `703`.
+
+  After disabling the mappings, you may want to define your own custom
+  mappings for Treevial instead. This can be done with a special |autocmd|
+  called `TreevialMappings` and can be used like this:
+
+      autocmd! User TreevialMappings
+      autocmd  User TreevialMappings
+        \ nnoremap <silent><nowait><buffer> u :call treevial#unmark_all()<Cr>
+
+  This autocmd gets called if it exists and after the default mappings have
+  been processed. For more complex configurations and mappings, using a
+  function is much more flexible. The following example disables
+  all the default mappings and uses the autocmd to enable them:
+
+      function! MappingsForTreevial() abort
+        nnoremap <silent><nowait><buffer> <Cr>    :call treevial#open()<Cr>
+        nnoremap <silent><nowait><buffer> <Tab>   :call treevial#mark()<Cr>
+        nnoremap <silent><nowait><buffer> d       :call treevial#destroy()<Cr>
+        nnoremap <silent><nowait><buffer> m       :call treevial#move()<Cr>
+        nnoremap <silent><nowait><buffer> c       :call treevial#create()<Cr>
+        nnoremap <silent><nowait><buffer> u
+            \ :call treevial#unmark_all()<Cr>
+
+        nnoremap <silent><nowait><buffer> <S-Tab>
+            \ :call treevial#mark({'shift': 1})<Cr>
+
+        nnoremap <silent><nowait><buffer> <C-v>
+            \ :call treevial#open({'command': 'vspl', 'dirs:' 0})<Cr>
+
+        nnoremap <silent><nowait><buffer> <C-x>
+            \ :call treevial#open({'command': 'spl',  'dirs': 0})<Cr>
+
+        if has('nvim')
+          nnoremap <silent><nowait><buffer> <S-Cr>
+              \ :call treevial#open({'shift': 1})<Cr>
+        endif
+      endfunction
+
+      let g:treevial_default_mappings = 0
+      autocmd! User TreevialMappings
+      autocmd  User TreevialMappings call MappingsForTreevial()
+
+  This gives you full control over what is mapped and how it is mapped.
 
 ==============================================================================
 HIGHLIGHTING                                 *treevial-hl* *treevial-highlighting*

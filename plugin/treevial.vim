@@ -11,11 +11,17 @@ let s:test               = {}
 let s:io                 = {}
 let s:view               = {}
 let s:entry              = {}
-let s:is_nvim            = has('nvim')
 let s:mark_prefix        = has('multi_byte') ? '• ' : '* '
+let s:is_nvim            = has('nvim')
 let s:is_vim             = !s:is_nvim
 let s:save_cpo           = &cpo
 set cpo&vim
+" }}}
+
+" {{{ startup configuration settings
+let s:settings = {
+      \ 'default_mappings': get(g:, 'treevial_default_mappings', v:version >=? 703)
+      \ }
 " }}}
 
 " {{{ main functionality
@@ -141,18 +147,24 @@ function! s:view.buffer(...) abort
 endfunction
 
 function! s:view.mappings() abort
-  nnoremap <silent><buffer> <Cr>    :call treevial#open()<Cr>
-  nnoremap <silent><buffer> <C-v>   :call treevial#open({'command': 'vspl', 'dirs:' 0})<Cr>
-  nnoremap <silent><buffer> <C-x>   :call treevial#open({'command': 'spl',  'dirs': 0})<Cr>
-  nnoremap <silent><buffer> <Tab>   :call treevial#mark()<Cr>
-  nnoremap <silent><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
-  nnoremap <silent><buffer> u       :call treevial#unmark_all()<Cr>
-  nnoremap <silent><buffer> d       :call treevial#destroy()<Cr>
-  nnoremap <silent><buffer> m       :call treevial#move()<Cr>
-  nnoremap <silent><buffer> c       :call treevial#create()<Cr>
+  if s:settings.default_mappings
+    nnoremap <silent><nowait><buffer> <Cr>    :call treevial#open()<Cr>
+    nnoremap <silent><nowait><buffer> <C-v>   :call treevial#open({'command': 'vspl', 'dirs:' 0})<Cr>
+    nnoremap <silent><nowait><buffer> <C-x>   :call treevial#open({'command': 'spl',  'dirs': 0})<Cr>
+    nnoremap <silent><nowait><buffer> <Tab>   :call treevial#mark()<Cr>
+    nnoremap <silent><nowait><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
+    nnoremap <silent><nowait><buffer> u       :call treevial#unmark_all()<Cr>
+    nnoremap <silent><nowait><buffer> d       :call treevial#destroy()<Cr>
+    nnoremap <silent><nowait><buffer> m       :call treevial#move()<Cr>
+    nnoremap <silent><nowait><buffer> c       :call treevial#create()<Cr>
 
-  if s:is_nvim
-    nnoremap <silent><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
+    if s:is_nvim
+      nnoremap <silent><nowait><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
+    endif
+  endif
+
+  if exists('#User#TreevialMappings')
+    doautocmd User TreevialMappings
   endif
 endfunction
 
@@ -201,7 +213,7 @@ function! s:view.render() abort
           let part        = get(parts, idx, '')
           let part_len    = len(part)
           let column     -= part_len
-          let add_target  = symlink_status ==? 2 ? broken_positions : positions
+          let add_target  = symlink_status ==# 2 ? broken_positions : positions
 
           call add(add_target, [current_lnum + 1, column + 1, part_len + (!is_dir)])
 
@@ -212,12 +224,12 @@ function! s:view.render() abort
         let pos_len        = len(positions)
         let broken_pos_len = len(broken_positions)
 
-        if idx ==? 0 && pos_len >? 0 || pos_len ==? 8
+        if idx ==# 0 && pos_len >? 0 || pos_len ==# 8
           call matchaddpos('TreevialSymlink', positions)
           let positions = []
         endif
 
-        if idx ==? 0 && broken_pos_len >? 0 || broken_pos_len ==? 8
+        if idx ==# 0 && broken_pos_len >? 0 || broken_pos_len ==# 8
           call matchaddpos('TreevialBrokenSymlink', broken_positions)
           let broken_positions = []
         endif
@@ -498,7 +510,7 @@ function! s:util.confirm(overrides) abort
     return s:test.vader_confirm_answer()
   endif
 
-  let overrides = type(a:overrides) ==? type('') ? {'message': a:overrides} : a:overrides
+  let overrides = type(a:overrides) ==# type('') ? {'message': a:overrides} : a:overrides
   let options   = extend(
         \ deepcopy({'choices': '&Ok', 'entries': [], 'default': 1, 'message': 'Confirm'}),
         \ overrides)
@@ -640,7 +652,7 @@ function! s:io.handle_move_multiple_entries(entries) abort
   call filter(entry_filename_table, 'len(v:val) >? 1')
 
   if !empty(illegal_moves)
-    let one = len(illegal_moves) ==? 1
+    let one = len(illegal_moves) ==# 1
     let choice = s:util.confirm({
           \ 'entries': illegal_moves,
           \ 'message': 'can not be moved because '
@@ -652,7 +664,7 @@ function! s:io.handle_move_multiple_entries(entries) abort
           \ 'choices': "&Cancel\n&Unmark"
           \ })
 
-    if choice ==? 2
+    if choice ==# 2
       for illegal in illegal_moves
         call illegal.mark(0)
         call illegal.mark_children()
@@ -672,7 +684,7 @@ function! s:io.handle_move_multiple_entries(entries) abort
           \ 'choices': "&Cancel\n&Unmark duplicates"
           \ })
 
-    if choice ==? 2
+    if choice ==# 2
       for [_, entries] in items(entry_filename_table)
         for entry in entries[1:]
           call entry.mark()
@@ -706,7 +718,7 @@ function! s:io.handle_move_multiple_entries(entries) abort
           \ 'choices': "&Cancel\n&Overwrite\n&Unmark"
           \ })
 
-    if choice ==? 3
+    if choice ==# 3
       for entry in would_overwrite
         entry.mark(0)
         entry.mark_children()
@@ -843,6 +855,9 @@ function! s:vimenter() abort
   let root_target = get(argv(), 0, getcwd())
   let no_lnum     = line2byte('$') ==# -1
 
+  if exists('#FileExplorer')        | exe 'au! FileExplorer *'        | endif
+  if exists('#NERDTreeHijackNetrw') | exe 'au! NERDTreeHijackNetrw *' | endif
+
   if isdirectory(root_target) && no_lnum && !&insertmode && &modifiable
     call s:view.buffer({'cwd': root_target})
   endif
@@ -857,7 +872,7 @@ augroup Treevial
   autocmd VimEnter * call s:vimenter()
   autocmd BufLeave,FocusLost treevial let b:active = 0
   autocmd BufEnter,FocusGained treevial
-        \ if get(b:, 'active', 1) ==? 0 |
+        \ if get(b:, 'active', 1) ==# 0 |
         \   call b:root.sync() |
         \   call s:view.render() |
         \   let b:active = 1 |

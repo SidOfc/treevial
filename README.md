@@ -45,7 +45,7 @@ motivation was born and put to use for a (hopefully) more positive experience.
 
 - [x] Completely isolate tests from each other.
 - [ ] Support "sidebar" style.
-- [ ] Make mappings configurable.
+- [x] Make mappings configurable.
 - [ ] Document, document, document, document, document!!
 
 ## Development
