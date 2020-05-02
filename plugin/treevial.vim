@@ -154,8 +154,6 @@ function! s:view.buffer(...) abort
 endfunction
 
 function! s:view.mappings() abort
-  nnoremap <silent><buffer> v       <Nop>
-  nnoremap <silent><buffer> V       <Nop>
   nnoremap <silent><buffer> <Cr>    :call treevial#open()<Cr>
   nnoremap <silent><buffer> <C-v>   :call treevial#open({'command': 'vspl', 'dirs:' 0})<Cr>
   nnoremap <silent><buffer> <C-x>   :call treevial#open({'command': 'spl',  'dirs': 0})<Cr>
