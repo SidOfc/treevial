@@ -23,15 +23,23 @@ motivation was born and put to use for a (hopefully) more positive experience.
 ## Why Treevial?
 
 - **Treevial does not leave buffers `&modified` AND `&readonly`**.
-- Treevial has one clear view mode: Tree view.
-- Treevial supports "single file/folder" merging like github.
-- Treevial has 3 "sane" mappings for performing file actions:
-  - <kbd>m</kbd>: Move file or selection
-  - <kbd>d</kbd>: Delete file or selection
-  - <kbd>c</kbd>: Create file or directory
-- And also two "sane" mappings for file selections:
-  - <kbd>tab</kbd>: Toggle mark and move to next line
-  - <kbd>shift</kbd>+<kbd>tab</kbd>: Toggle mark and move to previous line
+- it has some tests
+- it has one clear view mode: Tree view.
+- it supports "single file/folder" merging like github.
+
+## Core functionality
+
+- it has 2 mappings to handle directory expanding / collapsing
+  - <kbd>enter</kbd>: toggle directory open / closed or if file, open it in a buffer
+  - <kbd>shift</kbd>+<kbd>enter</kbd>: same as enter except when closing, closes all nested child directories (**nvim only by default**)
+- it has 3 mappings for performing actions:
+  - <kbd>m</kbd>: Move below cursor or selection
+  - <kbd>d</kbd>: Delete below cursor or selection
+  - <kbd>c</kbd>: Create below cursor or directory
+- And 3 mappings to handle selections:
+  - <kbd>u</kbd>: unmark all
+  - <kbd>tab</kbd>: Toggle mark below cursor and move to next line
+  - <kbd>shift</kbd>+<kbd>tab</kbd>: Toggle mark below cursor and move to previous line
 
 ## Roadmap
 
