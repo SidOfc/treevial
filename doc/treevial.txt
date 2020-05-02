@@ -6,6 +6,8 @@
   `Source:   https://github.com/SidOfc/treevial`
   `Author:   Sidney Liebrand <sidneyliebrand@gmail.com>`
 
+  Treevial isn't perfect, but it also isn't &readonly + &modified.
+
 ==============================================================================
 TABLE OF CONTENTS                                                 *treevial-toc*
 
