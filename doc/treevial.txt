@@ -17,9 +17,28 @@ TABLE OF CONTENTS                                                 *treevial-toc*
   of a specific topic, jump there first using :h treevial-[topic] with one
   of the topics listed below:
 
+  HONORABLE MENTIONS ....... |treevial-honorable-mentions|
   MAPPINGS ................. |treevial-mappings|
   CUSTOM MAPPINGS .......... |treevial-custom-mappings|
   HIGHLIGHTING ............. |treevial-highlighting|
+
+==============================================================================
+HONORABLE MENTIONS                                 *treevial-honorable-mentions*
+
+  While I wrote most of this plugin from scratch, I certainly did not discover
+  all the functionality by myself. I also took what I thought was great about
+  other plugins and added it to Treevial.
+
+  To make sure that I remember the great authors that enabled me to build a
+  different experience for myself and other users of Treevial, I wanted to
+  make this honorable mentions section an important part of this plugin.
+
+  With all that being said, many many thanks to the following author(s):
+
+  > Shougo/vimfiler.vim (https://github.com/Shougo/vimfiler.vim)
+    - for the "human sort" functionality which I ported 1-on-1 to Treevial.
+    - for the method to properly redraw and scroll buffers properly when
+      more than one Treevial buffer is shown.
 
 ==============================================================================
 MAPPINGS                                                     *treevial-mappings*
@@ -52,6 +71,7 @@ MAPPINGS                                                     *treevial-mappings*
   When the cursor is on the root directory (line 1), pressing <CR> will no-op.
   When on a file, pressing <CR> will open that file in the current window.
   When on a directory, pressing <CR> will toggle its state to open or closed.
+
 
 <S-CR> `:call treevial#open({'shift': 1})<CR>`                   *treevial-<s-cr>*
                                                                  *treevial-s-cr*
