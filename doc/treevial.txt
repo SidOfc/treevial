@@ -25,6 +25,7 @@ MAPPINGS                                                     *treevial-mappings*
 
   NAVIGATION
   <CR> ..................... |treevial-cr|
+  <S-CR> ................... |treevial-s-cr| (neovim only by default!)
   <C-V> .................... |treevial-c-v|
   <C-X> .................... |treevial-c-x|
 
@@ -47,6 +48,20 @@ MAPPINGS                                                     *treevial-mappings*
   When the cursor is on the root directory (line 1), pressing <CR> will no-op.
   When on a file, pressing <CR> will open that file in the current window.
   When on a directory, pressing <CR> will toggle its state to open or closed.
+
+<S-CR>                                           *treevial-s-cr* *treevial-<s-cr>*
+
+  Like |treevial-<s-cr>| but when closing a directory, it will also
+  recursively close all child directories. This lets you quickly close huge
+  file trees after finding the file you need. This functionality does not work
+  for opening directories recursively.
+
+  NOTE: there are many issues with <S-CR> mappings since it depends on your
+  terminal emulator / (n)vim setup. (n)vim may or may not be able to see the
+  difference between <S-CR> and regular <CR>.
+
+  With some configuration I managed to get <S-CR> working on neovim but not
+  yet on plain vim. For this reason, this key is only mapped in neovim!
 
 
 <C-V>                                              *treevial-c-v* *treevial-<c-v>*
