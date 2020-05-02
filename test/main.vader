@@ -1,6 +1,4 @@
 Execute (setting up test environment and helpers):
-  Log 'running tests using cwd: ' . getcwd()
-
   function! TestSetup(...) abort
     call mkdir('tmp-test', 'p')
     chdir tmp-test
@@ -44,172 +42,202 @@ Execute (setting up test environment and helpers):
     call delete('tmp-test', 'rf')
   endfunction
 
-================================================================================
-
-Execute (<<<<<<<<<<<<<<<<<<<<<<<<<<):
-  call TestSetup()
-
-Execute (buffer has name "treevial"):
-  Assert bufexists('treevial')
-
-Execute (buffer has filetype "treevial"):
-  AssertEqual 'treevial', getbufvar('treevial', '&filetype')
-
-Execute (buffer is readonly):
-  AssertEqual 1, getbufvar('treevial', '&readonly')
-
-Execute (>>>>>>>>>>>>>>>>>>>>>>>>>>):
-  call TestTeardown()
-
-================================================================================
-
-Execute (<<<<<<<<<<<<<<<<<<<<<<<<<<):
+Before:
   call TestSetup([
     \ 'example.txt',
     \ 'example.sh*',
     \ 'example.sh::example.ln',
     \ '!broken::broken.ln',
-    \ 'folded/directory',
-    \ 'folded/file/example.txt',
-    \ 'folded/directory::another'
+    \ 'folded-dir/directory/',
+    \ 'folded-file/file/example.txt',
+    \ '!folded-dir/::folded-sym',
+    \ 'expandable/1.txt',
+    \ 'expandable/2.txt',
+    \ 'expandable/deep/3.txt',
+    \ 'expandable/deep/4.txt'
     \ ])
+
+After:
+  call TestTeardown()
+
+================================================================================
+
+Execute (buffer has name "treevial"):
+  Assert bufexists('treevial')
+
+================================================================================
+
+Execute (buffer has filetype "treevial"):
+  AssertEqual 'treevial', getbufvar('treevial', '&filetype')
+
+================================================================================
+
+Execute (buffer is readonly):
+  AssertEqual 1, getbufvar('treevial', '&readonly')
+
+================================================================================
 
 Expect (buffer lists contents):
   tmp-test/
-  + folded/
-    another
+  + expandable/
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
     broken.ln
     example.ln
     example.sh
     example.txt
 
-Execute (>>>>>>>>>>>>>>>>>>>>>>>>>>):
-  call TestTeardown()
+================================================================================
+
+Do (creating a selection using <Tab> shows selection marks):
+  ggj\<Tab>
+
+Expect (buffer shows selection marks):
+  tmp-test/
+  + expandable/
+  • folded-dir/directory/
+  • folded-file/file/example.txt
+  • folded-sym/directory/
+  • broken.ln
+  • example.ln
+  • example.sh
+  • example.txt
 
 ================================================================================
 
-" Do (creating a selection using <Tab> shows selection marks):
-"   ggj\<Tab>
+Do (unmark using <u> hides selection marks):
+  ggj\<Tab>u
 
-" Expect (buffer shows contents nested in test/files/nested/directory/):
-"   files/
-"   • folded-exe/example.sh
-"   • folded-sym/example.ln
-"   • folded-sym-exe/example.sh
-"   • folded-sym-long/example.ln
-"   + nested/directory/
-"   • broken.ln
-"   • example.ln
-"   • example.sh
-"   • example.txt
-
-" Do (unmarking all using <u> hides selection marks):
-"   u
-
-" Expect (buffer lists contents of test/files/):
-"   files/
-"     folded-exe/example.sh
-"     folded-sym/example.ln
-"     folded-sym-exe/example.sh
-"     folded-sym-long/example.ln
-"   + nested/directory/
-"     broken.ln
-"     example.ln
-"     example.sh
-"     example.txt
+Expect (buffer no longer shows selection marks):
+  tmp-test/
+  + expandable/
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
+    broken.ln
+    example.ln
+    example.sh
+    example.txt
 
 ================================================================================
 
-" Do (expand test/files/nested/directory/ using <enter>):
-"   gg5j\<Cr>
+Do (expand a directory with <enter>):
+  ggj\<Cr>
 
-" Expect (buffer shows contents nested in test/files/nested/directory/):
-"   files/
-"     folded-exe/example.sh
-"     folded-sym/example.ln
-"     folded-sym-exe/example.sh
-"     folded-sym-long/example.ln
-"   - nested/directory/
-"       a.txt
-"       b.txt
-"     broken.ln
-"     example.ln
-"     example.sh
-"     example.txt
-
-================================================================================
-
-" Execute (create test setup):
-"   if filereadable('nested/directory/c.txt')
-"     call delete('nested/directory/c.txt') | Treevial
-"   endif
-
-" Do (add nested/directory/c.txt):
-"   ggc/nested/directory/c.txt\<Cr>
-
-" Execute (nested/directory/c.txt exists):
-"   Assert filereadable('nested/directory/c.txt')
-
-" Then (create test cleanup):
-"   if filereadable('nested/directory/c.txt')
-"     call delete('nested/directory/c.txt') | Treevial
-"   endif
+Expect (buffer shows expanded directory):
+  tmp-test/
+  - expandable/
+    + deep/
+      1.txt
+      2.txt
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
+    broken.ln
+    example.ln
+    example.sh
+    example.txt
 
 ================================================================================
 
-" Execute (rename test setup):
-"   if filereadable('nested/directory/1.txt')
-"     call rename('nested/directory/1.txt', 'nested/directory/a.txt') | Treevial
-"   endif
+Do (create a new file):
+  ggc/nested/directory/c.txt\<Cr>
 
-" Do (rename nested/directory/b.txt to nested/directory/d.txt):
-"   gg6jm\<Left>\<Left>\<Left>\<Left>\<Bs>1\<Cr>
+Then (newly created file exists):
+  Assert filereadable('nested/directory/c.txt')
 
-" Execute (nested/directory/a.txt renamed to nested/directory/1.txt):
-"   Assert filereadable('nested/directory/1.txt')
-"   Assert !filereadable('nested/directory/a.txt')
-
-" Then (rename test cleanup):
-"   if filereadable('nested/directory/1.txt')
-"     call rename('nested/directory/1.txt', 'nested/directory/a.txt') | Treevial
-"   endif
-
-================================================================================
-
-" Execute (delete confirmed test setup):
-"   let g:__treevial_vader_confirm_reply__ = 2
-
-"   if !filereadable('z.txt')
-"     call writefile([], 'z.txt', 'b') | Treevial
-"   endif
-
-" Do (delete z.txt with confirm):
-"   Gd
-
-" Execute (z.txt is deleted):
-"   Assert !filereadable('z.txt')
-
-" Then (delete confirmed test cleanup):
-"   if filereadable('z.txt')
-"     call delete('z.txt') | Treevial
-"   endif
+Expect (buffer shows newly created file):
+  tmp-test/
+  + expandable/
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
+    nested/directory/c.txt
+    broken.ln
+    example.ln
+    example.sh
+    example.txt
 
 ================================================================================
 
-" Execute (cancel delete test setup):
-"   let g:__treevial_vader_confirm_reply__ = 1
+Do (create a new directory):
+  ggc/directory/\<Cr>
 
-"   if !filereadable('z.txt')
-"     call writefile([], 'z.txt', 'b') | Treevial
-"   endif
+Then (newly created file exists):
+  Assert isdirectory('directory')
 
-" Do (cancel deletion of z.txt):
-"   Gd
+Expect (buffer shows newly created file):
+  tmp-test/
+    directory/
+  + expandable/
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
+    broken.ln
+    example.ln
+    example.sh
+    example.txt
 
-" Execute (z.txt is not deleted):
-"   Assert filereadable('z.txt')
+================================================================================
 
-" Then (cancel delete test cleanup):
-"   if filereadable('z.txt')
-"     call delete('z.txt') | Treevial
-"   endif
+Do (rename a directory):
+  ggjm\<Bs>-renamed\<Cr>
+
+Then (target is directory):
+  Assert isdirectory('expandable-renamed')
+  Assert !isdirectory('expandable')
+
+Expect (buffer shows renamed directory):
+  tmp-test/
+  + expandable-renamed/
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
+    broken.ln
+    example.ln
+    example.sh
+    example.txt
+
+================================================================================
+
+Execute (stub confirm answer for delete):
+  let g:__treevial_vader_confirm_reply__ = 2
+
+Do (delete a directory):
+  ggjd
+
+Then (directory is deleted):
+  Assert !isdirectory('expandable')
+
+Expect (buffer no longer shows deleted directory):
+  tmp-test/
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
+    broken.ln
+    example.ln
+    example.sh
+    example.txt
+
+================================================================================
+
+Execute (stub confirm answer for delete):
+  let g:__treevial_vader_confirm_reply__ = 1
+
+Do (delete a directory):
+  ggjd
+
+Then (directory is not deleted):
+  Assert isdirectory('expandable')
+
+Expect (buffer shows directory):
+  tmp-test/
+  + expandable/
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
+    broken.ln
+    example.ln
+    example.sh
+    example.txt
