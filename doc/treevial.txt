@@ -89,7 +89,7 @@ MAPPINGS                                                     *treevial-mappings*
   yet on plain vim. For this reason, this key is only mapped in neovim!
 
 
-<C-V> `:call treevial#open({'command': 'vspl', dirs: 0})<CR>`     *treevial-<c-v>*
+<C-V> `:call treevial#open({'command': 'vspl', 'dirs': 0})<CR>`   *treevial-<c-v>*
                                                                   *treevial-c-v*
 
   Pressing <C-V> will not put you in |visual-block| mode. Instead, Treevial
@@ -99,7 +99,7 @@ MAPPINGS                                                     *treevial-mappings*
   to use this mapping on a directory.
 
 
-<C-X> `:call treevial#open({'command': 'spl', dirs: 0})<CR>`      *treevial-<c-x>*
+<C-X> `:call treevial#open({'command': 'spl', 'dirs': 0})<CR>`    *treevial-<c-x>*
                                                                   *treevial-c-x*
 
   Like |treevial-<c-v>|, but using a horizontal |split|.

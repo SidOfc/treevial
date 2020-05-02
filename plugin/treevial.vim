@@ -131,15 +131,20 @@ endfunction
 
 " {{{ s:view helpers
 function! s:view.buffer(...) abort
+  if bufexists('treevial')
+    buffer treevial
+    return
+  endif
+
   noautocmd edit treevial
   setfiletype treevial
 
-  let options   = get(a:,      1,         {})
-  let b:cwd     = get(options, 'cwd',     getcwd())
-  let b:entries = get(b:,      'entries', [])
-  let b:root    = get(b:,      'root',    s:entry.new(b:cwd))
+  let options   = get(a:, 1, {})
+  let b:entries = []
+  let b:root    = s:entry.new(get(options, 'cwd', getcwd()))
 
-  setlocal noru nonu nornu noma nomod ro noswf nospell bufhidden=hide buftype=nowrite
+  setlocal noru nonu nornu noma nomod ro noswf nospell
+  setlocal bufhidden=hide buftype=nowrite buftype=nofile
 
   call b:root.sync()
   call s:view.mappings()
@@ -149,7 +154,7 @@ endfunction
 function! s:view.mappings() abort
   if s:settings.default_mappings
     nnoremap <silent><nowait><buffer> <Cr>    :call treevial#open()<Cr>
-    nnoremap <silent><nowait><buffer> <C-v>   :call treevial#open({'command': 'vspl', 'dirs:' 0})<Cr>
+    nnoremap <silent><nowait><buffer> <C-v>   :call treevial#open({'command': 'vspl', 'dirs': 0})<Cr>
     nnoremap <silent><nowait><buffer> <C-x>   :call treevial#open({'command': 'spl',  'dirs': 0})<Cr>
     nnoremap <silent><nowait><buffer> <Tab>   :call treevial#mark()<Cr>
     nnoremap <silent><nowait><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
@@ -225,25 +230,31 @@ function! s:view.render() abort
         let broken_pos_len = len(broken_positions)
 
         if idx ==# 0 && pos_len >? 0 || pos_len ==# 8
-          call matchaddpos('TreevialSymlink', positions)
+          call s:util.each_view({-> matchaddpos(
+                \ 'TreevialSymlink', positions)})
           let positions = []
         endif
 
         if idx ==# 0 && broken_pos_len >? 0 || broken_pos_len ==# 8
-          call matchaddpos('TreevialBrokenSymlink', broken_positions)
+          call s:util.each_view({-> matchaddpos(
+                \ 'TreevialBrokenSymlink', broken_positions)})
           let broken_positions = []
         endif
       endfor
     endif
 
     if entry.is_exe
-      call matchaddpos('TreevialExecutable', [[current_lnum + 1, len(line) - fname_len + 1, fname_len]])
+      call s:util.each_view({-> matchaddpos(
+            \ 'TreevialExecutable',
+            \ [[current_lnum + 1, len(line) - fname_len + 1, fname_len]])})
     endif
 
     if entry.is_marked
-      call matchaddpos('TreevialSelectedMark', [[current_lnum + 1, indent_mult + 1]])
+      call s:util.each_view({-> matchaddpos(
+            \ 'TreevialSelectedMark', [[current_lnum + 1, indent_mult + 1]])})
     elseif entry.has_marked_entries()
-      call matchaddpos('TreevialPartialMark',  [[current_lnum + 1, indent_mult + 1]])
+      call s:util.each_view({-> matchaddpos(
+            \ 'TreevialPartialMark', [[current_lnum + 1, indent_mult + 1]])})
     endif
   endfor
 
@@ -475,20 +486,24 @@ function! s:util.keep_cursor_below_root() abort
   endif
 endfunction
 
-function! s:util.winrestview(position) abort
+function! s:util.each_view(func) abort
   let curr_winnr = winnr()
-  let windows    = filter(map(
+  let windows = filter(map(
         \ win_findbuf(bufnr('%')),
         \ 'win_id2win(v:val)'),
         \ 'v:val !=# ' . curr_winnr)
 
   for winnr in windows
     exe winnr . 'wincmd w'
-    call winrestview(a:position)
+    call call(a:func, [winnr])
   endfor
 
   exe curr_winnr . 'wincmd w'
-  call winrestview(a:position)
+  call call(a:func, [curr_winnr])
+endfunction
+
+function! s:util.winrestview(position) abort
+  call s:util.each_view({-> winrestview(a:position)})
 endfunction
 
 function! s:util.clear_buffer() abort
