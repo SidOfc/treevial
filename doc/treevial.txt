@@ -40,7 +40,8 @@ MAPPINGS                                                     *treevial-mappings*
   <m> ...................... |treevial-m|
 
 
-<CR>                                                 *treevial-cr* *treevial-<cr>*
+<CR> `:call treevial#open()<CR>`                                   *treevial-<cr>*
+                                                                   *treevial-cr*
 
   Pressing <CR> (return / enter) on your keyboard will perform a different
   action depending on the entry below the cursor.
@@ -49,7 +50,8 @@ MAPPINGS                                                     *treevial-mappings*
   When on a file, pressing <CR> will open that file in the current window.
   When on a directory, pressing <CR> will toggle its state to open or closed.
 
-<S-CR>                                           *treevial-s-cr* *treevial-<s-cr>*
+<S-CR> `:call treevial#open({'shift': 1})<CR>`                   *treevial-<s-cr>*
+                                                                 *treevial-s-cr*
 
   Like |treevial-<s-cr>| but when closing a directory, it will also
   recursively close all child directories. This lets you quickly close huge
@@ -64,7 +66,8 @@ MAPPINGS                                                     *treevial-mappings*
   yet on plain vim. For this reason, this key is only mapped in neovim!
 
 
-<C-V>                                              *treevial-c-v* *treevial-<c-v>*
+<C-V> `:call treevial#open({'command': 'vspl', dirs: 0})<CR>`     *treevial-<c-v>*
+                                                                  *treevial-c-v*
 
   Pressing <C-V> will not put you in |visual-block| mode. Instead, Treevial
   uses this key combination to open a file in a vertical split (|vsplit|).
@@ -73,12 +76,14 @@ MAPPINGS                                                     *treevial-mappings*
   to use this mapping on a directory.
 
 
-<C-X>                                              *treevial-c-x* *treevial-<c-x>*
+<C-X> `:call treevial#open({'command': 'spl', dirs: 0})<CR>`      *treevial-<c-x>*
+                                                                  *treevial-c-x*
 
   Like |treevial-<c-v>|, but using a horizontal |split|.
 
 
-<Tab>                                              *treevial-tab* *treevial-<tab>*
+<Tab> `:call treevial#mark()<CR>`                                 *treevial-<tab>*
+                                                                  *treevial-tab*
 
   Pressing <Tab> will mark or unmark the entry below the cursor. After
   marking the current entry, the cursor will be moved down one line. This is
@@ -87,18 +92,21 @@ MAPPINGS                                                     *treevial-mappings*
   This mapping will no-op when on the root directory (line 1).
 
 
-<S-Tab>                                        *treevial-s-tab* *treevial-<s-tab>*
+<S-Tab> `:call treevial#mark({'shift': 1})<CR>`                 *treevial-<s-tab>*
+                                                                *treevial-s-tab*
 
   Like |treevial-<tab>|, but moves up one line instead of down. This one is
   convenient for selecting a list of files in ascending order.
 
 
-<u>                                                    *treevial-u* *treevial-<u>*
+<u> `:call treevial#unmark_all()<CR>`                               *treevial-<u>*
+                                                                    *treevial-u*
 
   Pressing <u> will unmark all marked entries.
 
 
-<d>                                                    *treevial-d* *treevial-<d>*
+<d> `:call treevial#destroy()<CR>`                                  *treevial-<d>*
+                                                                    *treevial-d*
 
   Pressing <d> will delete a file or directory (recursively!).
 
@@ -111,7 +119,8 @@ MAPPINGS                                                     *treevial-mappings*
   after user confirmation.
 
 
-<c>                                                    *treevial-c* *treevial-<c>*
+<c> `:call treevial#create()<CR>`                                   *treevial-<c>*
+                                                                    *treevial-c*
 
   Pressing <c> will prompt the user using Vim's |input| prompt for a
   destination to create. When the destination ends in a '/' a directory
@@ -123,7 +132,8 @@ MAPPINGS                                                     *treevial-mappings*
   If destination exists, it will ask the user to overwrite or cancel.
 
 
-<m>                                                    *treevial-m* *treevial-<m>*
+<m> `:call treevial#move()<CR>`                                     *treevial-<m>*
+                                                                    *treevial-m*
 
   Pressing <m> will move a file or directory. The destination is requested
   using Vim's built-in |input| prompt with {completion} set to 'dir'.
