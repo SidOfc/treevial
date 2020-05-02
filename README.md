@@ -35,7 +35,7 @@ motivation was born and put to use for a (hopefully) more positive experience.
 
 ## Roadmap
 
-- [ ] Completely isolate tests from each other.
+- [x] Completely isolate tests from each other.
 - [ ] Support "sidebar" style.
 - [ ] Make mappings configurable.
 - [ ] Document, document, document, document, document!!
