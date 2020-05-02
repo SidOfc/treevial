@@ -22,7 +22,7 @@ motivation was born and put to use for a (hopefully) more positive experience.
 
 ## Why Treevial?
 
-- **Treevial does not leave buffers `&modified` AND `&readonly`**
+- **Treevial does not leave buffers `&modified` AND `&readonly`**.
 - Treevial has one clear view mode: Tree view.
 - Treevial supports "single file/folder" merging like github.
 - Treevial has 3 "sane" mappings for performing file actions:
