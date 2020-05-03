@@ -146,8 +146,10 @@ function! treevial#down() abort
     let max_offset = min([len(parts) - 1, v:count1]) - !entry.is_dir
     let dest       = base . join(parts[0:max_offset], '/')
 
-    exe 'cd' dest
-    Treevial
+    if max_offset >? -1
+      exe 'cd' dest
+      Treevial
+    endif
   endif
 endfunction
 " }}}
