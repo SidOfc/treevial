@@ -130,9 +130,20 @@ function! treevial#destroy() abort
   endif
 endfunction
 
-function! treevial#up() abort
-  exe 'cd' fnamemodify(s:util.strip_trailing_slash(b:root.path), ':h')
+function! treevial#up(...) abort
+  exe 'cd' fnamemodify(
+        \ s:util.strip_trailing_slash(b:root.path),
+        \ repeat(':h', v:count1))
+
   Treevial
+endfunction
+
+function! treevial#down() abort
+  let entry = s:util.lnum_to_entry(line('.'))
+  if s:util.is_entry(entry)
+    exe 'cd' entry.path
+    Treevial
+  endif
 endfunction
 " }}}
 
@@ -164,7 +175,8 @@ function! s:view.mappings() abort
     nnoremap <silent><nowait><buffer> d       :call treevial#destroy()<Cr>
     nnoremap <silent><nowait><buffer> m       :call treevial#move()<Cr>
     nnoremap <silent><nowait><buffer> c       :call treevial#create()<Cr>
-    nnoremap <silent><nowait><buffer> -       :call treevial#up()<Cr>
+    nnoremap <silent><nowait><buffer> -       :<C-u>call treevial#up()<Cr>
+    nnoremap <silent><nowait><buffer> =       :call treevial#down()<Cr>
 
     if s:is_nvim
       nnoremap <silent><nowait><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
