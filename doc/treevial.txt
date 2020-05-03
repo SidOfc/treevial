@@ -17,10 +17,10 @@ TABLE OF CONTENTS                                                 *treevial-toc*
   of a specific topic, jump there first using :h treevial-[topic] with one
   of the topics listed below:
 
-  HONORABLE MENTIONS ....... |treevial-honorable-mentions|
-  MAPPINGS ................. |treevial-mappings|
-  CUSTOM MAPPINGS .......... |treevial-custom-mappings|
-  HIGHLIGHTING ............. |treevial-highlighting|
+  HONORABLE MENTIONS `.......` |treevial-honorable-mentions|
+  MAPPINGS `.................` |treevial-mappings|
+  CUSTOM MAPPINGS `..........` |treevial-custom-mappings|
+  HIGHLIGHTING `.............` |treevial-highlighting|
 
 ==============================================================================
 HONORABLE MENTIONS                                 *treevial-honorable-mentions*
@@ -45,21 +45,25 @@ MAPPINGS                                                     *treevial-mappings*
 
   Treevial supports the following mappings:
 
-  NAVIGATION
-  <CR> ..................... |treevial-cr|
-  <S-CR> ................... |treevial-s-cr| (neovim only by default!)
-  <C-V> .................... |treevial-c-v|
-  <C-X> .................... |treevial-c-x|
+  OPENING / CLOSING
+  <CR> `.....................` |treevial-cr|
+  <S-CR> `...................` |treevial-s-cr| (neovim only by default!)
+  <C-V> `....................` |treevial-c-v|
+  <C-X> `....................` |treevial-c-x|
 
   MARKING / UNMARKING
-  <Tab> .................... |treevial-tab|
-  <S-Tab> .................. |treevial-s-tab|
-  <u> ...................... |treevial-u|
+  <Tab> `....................` |treevial-tab|
+  <S-Tab> `..................` |treevial-s-tab|
+  <u> `......................` |treevial-u|
 
   CREATING / DELETING / MOVING / RENAMING
-  <c> ...................... |treevial-c|
-  <d> ...................... |treevial-d|
-  <m> ...................... |treevial-m|
+  <c> `......................` |treevial-c|
+  <d> `......................` |treevial-d|
+  <m> `......................` |treevial-m|
+
+  DIRECTORY TRAVERSAL
+  - `........................` |treevial-up|
+  = `........................` |treevial-down|
 
 
 <CR> `:call treevial#open()<CR>`                                   *treevial-<cr>*
@@ -187,6 +191,30 @@ MAPPINGS                                                     *treevial-mappings*
   copied "into" themselves or would otherwise overwrite the directory
   they would be moved from, the user can choose to cancel or unmark
   and continue.
+
+- `:call treevial#up()<CR>`                                          *treevial-up*
+                                                                    *treevial--*
+
+  Move [count] directories up. if [count] is omitted, move up 1 directory.
+
+= `:call treevial#down()<CR>`                                      *treevial-down*
+                                                                    *treevial-=*
+
+  Move to the directory below the cursor. When not on a directory, this does
+  nothing.
+
+  When on a folded path move to the leftmost directory, examples:
+
+    hello/world.txt         `=>`  will move to the "hello/" directory.
+    hello/nested/world.txt ` =>`  will move to the "hello/" directory.
+
+  A [count] may be supplied when on a folded path, in this case it will
+  move [count] directories from left. Running `2=` on hello/nested/world.txt
+  moves to the "hello/nested/" directory.
+
+  if the supplied [count] overshoots it will go to the last available
+  directory. This means that running `3=` on hello/nested/world.txt
+  will also move to the "hello/nested/" directory.
 
 ==============================================================================
 CUSTOM MAPPINGS                                       *treevial-custom-mappings*

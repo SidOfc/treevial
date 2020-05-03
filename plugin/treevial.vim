@@ -141,7 +141,12 @@ endfunction
 function! treevial#down() abort
   let entry = s:util.lnum_to_entry(line('.'))
   if s:util.is_entry(entry)
-    exe 'cd' entry.path
+    let base       = substitute(entry.path, entry.name, '', '')
+    let parts      = split(s:util.strip_trailing_slash(entry.name), '/')
+    let max_offset = min([len(parts) - 1, v:count1]) - !entry.is_dir
+    let dest       = base . join(parts[0:max_offset], '/')
+
+    exe 'cd' dest
     Treevial
   endif
 endfunction
@@ -176,7 +181,7 @@ function! s:view.mappings() abort
     nnoremap <silent><nowait><buffer> m       :call treevial#move()<Cr>
     nnoremap <silent><nowait><buffer> c       :call treevial#create()<Cr>
     nnoremap <silent><nowait><buffer> -       :<C-u>call treevial#up()<Cr>
-    nnoremap <silent><nowait><buffer> =       :call treevial#down()<Cr>
+    nnoremap <silent><nowait><buffer> =       :<C-u>call treevial#down()<Cr>
 
     if s:is_nvim
       nnoremap <silent><nowait><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
