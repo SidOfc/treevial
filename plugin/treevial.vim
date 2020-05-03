@@ -14,6 +14,7 @@ let s:entry              = {}
 let s:mark_prefix        = has('multi_byte') ? '• ' : '* '
 let s:is_nvim            = has('nvim')
 let s:is_vim             = !s:is_nvim
+let s:fn_type            = type(function('getline'))
 let s:save_cpo           = &cpo
 set cpo&vim
 " }}}
@@ -268,19 +269,19 @@ endfunction
 
 " {{{ s:entry model + helpers
 function! s:entry.new(path, ...) abort
-  let is_dir = isdirectory(a:path)
-  let root   = get(a:, 1, fnamemodify(a:path, ':h'))
-  let path   = fnamemodify(a:path, ':p')
+  let is_dir   = isdirectory(a:path)
+  let root     = get(a:, 1, fnamemodify(a:path, ':h'))
+  let path     = fnamemodify(a:path, ':p')
   let resolved = resolve(a:path)
-  let is_ln  = a:path !=? resolved
+  let modified = getftime(resolved)
+  let is_ln    = a:path !=? resolved
 
   return extend(deepcopy(s:entry), {
         \ 'name': substitute(path, root, '', '')[1:],
-        \ 'filename': get(split(path, '/'), -1, ''),
+        \ 'filename': fnamemodify(a:path, ':t'),
+        \ 'modified': modified,
         \ 'path': path,
-        \ 'is_symlink': is_ln
-        \   ? (is_dir ? isdirectory(resolved) : filereadable(resolved)) ? 1 : 2
-        \   : 0,
+        \ 'is_symlink': is_ln ? (modified ==# -1 ? 2 : 1) : 0,
         \ 'is_dir': is_dir,
         \ 'is_exe': executable(path),
         \ 'is_open': 0,
@@ -292,6 +293,11 @@ endfunction
 
 function! s:entry.update(properties) abort dict
   return extend(self, a:properties)
+endfunction
+
+function! s:entry.merge(other) abort dict
+  call self.update(filter(copy(a:other), {_, v -> type(v) !=# s:fn_type}))
+  return self
 endfunction
 
 function! s:entry.open(...) abort dict
@@ -360,18 +366,11 @@ function! s:entry.expand(...) abort dict
         call add(symlinks, result_entry.is_symlink)
       endwhile
 
-      call child_entry.update({'symlinks': symlinks})
       if child_entry.path !=# result_entry.path
-        call child_entry.update({
-              \ 'name': substitute(result_entry.path, self.path, '', ''),
-              \ 'filename': result_entry.filename,
-              \ 'is_exe': result_entry.is_exe,
-              \ 'is_symlink': result_entry.is_symlink,
-              \ 'path': result_entry.path,
-              \ 'is_dir': result_entry.is_dir,
-              \ '_children': result_entry.children()
-              \ })
+        call child_entry.merge(result_entry)
+              \.update({'name': substitute(result_entry.path, self.path, '', '')})
       endif
+      call child_entry.update({'symlinks': symlinks})
     endfor
   endif
 
@@ -441,7 +440,9 @@ function! s:entry.synchronize_with(previous) abort dict
 
     if s:util.is_entry(old_entry)
       call new_entry.update({'is_marked': old_entry.is_marked})
-      if new_entry.is_dir && old_entry.is_dir && old_entry.is_open
+      if new_entry.modified ==# old_entry.modified
+        call new_entry.merge(old_entry)
+      elseif new_entry.is_dir && old_entry.is_dir && old_entry.is_open
         call new_entry.synchronize_with(old_entry)
       endif
     endif
