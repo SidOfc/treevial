@@ -291,13 +291,8 @@ function! s:entry.new(path, ...) abort
         \ })
 endfunction
 
-function! s:entry.update(properties) abort dict
-  return extend(self, a:properties)
-endfunction
-
 function! s:entry.merge(other) abort dict
-  call self.update(filter(copy(a:other), {_, v -> type(v) !=# s:fn_type}))
-  return self
+  return extend(self, filter(copy(a:other), {_, v -> type(v) !=# s:fn_type}))
 endfunction
 
 function! s:entry.open(...) abort dict
@@ -314,12 +309,12 @@ function! s:entry.toggle(...) abort dict
 endfunction
 
 function s:entry.mark(...) abort dict
-  return self.update({'is_marked': get(a:, 1, !self.is_marked)})
+  return self.merge({'is_marked': get(a:, 1, !self.is_marked)})
 endfunction
 
 function! s:entry.mark_children() abort dict
   for child_entry in self.fetched_children()
-    call child_entry.update({'is_marked': self.is_marked}).mark_children()
+    call child_entry.merge({'is_marked': self.is_marked}).mark_children()
   endfor
 
   return self
@@ -333,7 +328,7 @@ function! s:entry.mark_parents() abort dict
           \ copy(parent.fetched_children()),
           \ '!v:val.is_marked'))
 
-    call parent.update({'is_marked': unmarked_count ==# 0})
+    call parent.merge({'is_marked': unmarked_count ==# 0})
     call parent.mark_parents()
   endif
 
@@ -344,7 +339,7 @@ function! s:entry.collapse(...) abort dict
   let options   = get(a:, 1, {})
   let recursive = get(options, 'shift', 0)
 
-  call self.update({'is_open': 0})
+  call self.merge({'is_open': 0})
 
   if recursive
     for child_entry in self.fetched_children()
@@ -368,13 +363,13 @@ function! s:entry.expand(...) abort dict
 
       if child_entry.path !=# result_entry.path
         call child_entry.merge(result_entry)
-              \.update({'name': substitute(result_entry.path, self.path, '', '')})
+              \.merge({'name': substitute(result_entry.path, self.path, '', '')})
       endif
-      call child_entry.update({'symlinks': symlinks})
+      call child_entry.merge({'symlinks': symlinks})
     endfor
   endif
 
-  call self.update({'is_open': self.is_dir, '_expanded': 1})
+  call self.merge({'is_open': self.is_dir, '_expanded': 1})
   return self
 endfunction
 
@@ -390,7 +385,7 @@ function! s:entry.children() abort dict
 
     call extend(self, {'_children': map(
           \ children,
-          \ {_, entry -> entry.update({
+          \ {_, entry -> entry.merge({
           \   '_parent': self,
           \   'is_marked': self.is_marked
           \ })
@@ -424,7 +419,7 @@ endfunction
 
 function! s:entry.sync() abort dict
   let dir_offset = self.is_dir ? -2 : -1
-  return self.update(s:entry.new(self.path[:dir_offset]).synchronize_with(self))
+  return self.merge(s:entry.new(self.path[:dir_offset]).synchronize_with(self))
 endfunction
 
 function! s:entry.synchronize_with(previous) abort dict
@@ -439,7 +434,7 @@ function! s:entry.synchronize_with(previous) abort dict
     let old_entry = get(old_entries_by_path, new_entry.path, 0)
 
     if s:util.is_entry(old_entry)
-      call new_entry.update({'is_marked': old_entry.is_marked})
+      call new_entry.merge({'is_marked': old_entry.is_marked})
       if new_entry.modified ==# old_entry.modified
         call new_entry.merge(old_entry)
       elseif new_entry.is_dir && old_entry.is_dir && old_entry.is_open
