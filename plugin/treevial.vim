@@ -208,7 +208,7 @@ function! s:view.render() abort
     if check_links
       let parts            = split(substitute(entry.name, '\/\+$', '', ''), '/')
       let column           = len(line)
-      let is_dir           = entry.is_dir
+      let initial_offset   = entry.is_dir
       let positions        = []
       let broken_positions = []
 
@@ -217,13 +217,13 @@ function! s:view.render() abort
         if symlink_status
           let part        = get(parts, idx, '')
           let part_len    = len(part)
-          let column     -= part_len
+          let column     -= part_len + initial_offset
           let add_target  = symlink_status ==# 2 ? broken_positions : positions
 
-          call add(add_target, [current_lnum + 1, column + 1, part_len + (!is_dir)])
+          call add(add_target, [current_lnum + 1, column + 1, part_len])
 
-          let column -= 1
-          let is_dir  = 1
+          let column         -= 1
+          let initial_offset  = 0
         endif
 
         let pos_len        = len(positions)
