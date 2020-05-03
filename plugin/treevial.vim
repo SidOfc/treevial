@@ -35,6 +35,7 @@ function! treevial#open(...) abort
       call entry.toggle(options)
       call s:view.render()
     elseif get(options, 'files', 1)
+      call clearmatches()
       call entry.open(options)
     endif
   endif
@@ -128,17 +129,17 @@ function! treevial#destroy() abort
     endif
   endif
 endfunction
+
+function! treevial#up() abort
+  exe 'cd' fnamemodify(s:util.strip_trailing_slash(b:root.path), ':h')
+  Treevial
+endfunction
 " }}}
 
 " {{{ s:view helpers
 function! s:view.buffer(...) abort
-  if bufexists('treevial')
-    buffer treevial
-    return
-  endif
-
-  noautocmd edit treevial
-  setfiletype treevial
+  edit treevial
+  set filetype=treevial
 
   let options   = get(a:, 1, {})
   let b:entries = []
@@ -163,6 +164,7 @@ function! s:view.mappings() abort
     nnoremap <silent><nowait><buffer> d       :call treevial#destroy()<Cr>
     nnoremap <silent><nowait><buffer> m       :call treevial#move()<Cr>
     nnoremap <silent><nowait><buffer> c       :call treevial#create()<Cr>
+    nnoremap <silent><nowait><buffer> -       :call treevial#up()<Cr>
 
     if s:is_nvim
       nnoremap <silent><nowait><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
@@ -276,7 +278,7 @@ function! s:entry.new(path, ...) abort
   let modified = getftime(resolved)
   let is_ln    = a:path !=? resolved
 
-  return extend(deepcopy(s:entry), {
+  return extend(copy(s:entry), {
         \ 'name': substitute(path, root, '', '')[1:],
         \ 'filename': fnamemodify(a:path, ':t'),
         \ 'modified': modified,
@@ -299,7 +301,6 @@ function! s:entry.open(...) abort dict
   let options = get(a:, 1, {})
 
   exe get(options, 'command', 'edit') fnameescape(self.path)
-  call clearmatches()
 endfunction
 
 function! s:entry.toggle(...) abort dict
@@ -362,8 +363,11 @@ function! s:entry.expand(...) abort dict
       endwhile
 
       if child_entry.path !=# result_entry.path
-        call child_entry.merge(result_entry)
-              \.merge({'name': substitute(result_entry.path, self.path, '', '')})
+        call child_entry
+              \.merge(result_entry)
+              \.merge({
+              \ 'name': substitute(result_entry.path, self.path, '', ''),
+              \ '_children': result_entry.fetched_children()})
       endif
       call child_entry.merge({'symlinks': symlinks})
     endfor
@@ -375,7 +379,7 @@ endfunction
 
 function! s:entry.children() abort dict
   if self.is_dir && !has_key(self, '_children')
-    let root     = substitute(self.path, '/\+$', '', '')
+    let root     = s:util.strip_trailing_slash(self.path)
     let children = sort(sort(map(filter(
         \ glob(root . '/*',  0, 1, 1) + glob(root . '/.*', 0, 1, 1),
         \ {_,  p  -> p !~# '/\.\.\?$'}),
@@ -418,8 +422,9 @@ function! s:entry.list(...) abort dict
 endfunction
 
 function! s:entry.sync() abort dict
-  let dir_offset = self.is_dir ? -2 : -1
-  return self.merge(s:entry.new(self.path[:dir_offset]).synchronize_with(self))
+  return self
+        \.merge(s:entry.new(s:util.strip_trailing_slash(self.path))
+        \.synchronize_with(self))
 endfunction
 
 function! s:entry.synchronize_with(previous) abort dict
@@ -472,6 +477,10 @@ endfunction
 " }}}
 
 " {{{ s:util helpers
+function! s:util.strip_trailing_slash(path)
+  return substitute(a:path, '\/\+$', '', '')
+endfunction
+
 function! s:util.lnum_to_entry(lnum) abort
   return a:lnum >? 1 ? get(get(b:entries, a:lnum - 2, []), 0, 0) : 0
 endfunction
@@ -639,7 +648,7 @@ function! s:io.handle_move_multiple_entries(entries) abort
   let entry_filename_table = s:util.to_dict(map(copy(entry_filenames), '[v:val, []]'))
   let illegal_moves        = []
   let dest_path            = expand(
-        \ substitute(input('directory: ', b:root.path, 'dir'), '\/$', '', ''))
+        \ s:util.strip_trailing_slash(input('directory: ', b:root.path, 'dir')))
 
   mode
 
