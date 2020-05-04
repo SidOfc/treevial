@@ -42,6 +42,10 @@ Execute (setting up test environment and helpers):
     call delete('tmp-test', 'rf')
   endfunction
 
+  function! TestConfirmChoice(choice) abort
+    let g:__treevial_vader_confirm_reply__ = a:choice
+  endfunction
+
 Before:
   call TestSetup([
     \ 'example.txt',
@@ -202,7 +206,7 @@ Expect (buffer shows renamed directory):
 ================================================================================
 
 Execute (stub confirm answer for delete):
-  let g:__treevial_vader_confirm_reply__ = 2
+  call TestConfirmChoice(2)
 
 Do (delete a directory):
   ggjd
@@ -223,7 +227,7 @@ Expect (buffer no longer shows deleted directory):
 ================================================================================
 
 Execute (stub confirm answer for delete):
-  let g:__treevial_vader_confirm_reply__ = 1
+  call TestConfirmChoice(1)
 
 Do (delete a directory):
   ggjd
@@ -232,6 +236,33 @@ Then (directory is not deleted):
   Assert isdirectory('expandable')
 
 Expect (buffer shows directory):
+  tmp-test/
+  + expandable/
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
+    broken.ln
+    example.ln
+    example.sh
+    example.txt
+
+================================================================================
+
+Do (move into a directory):
+  ggj=
+
+Expect (buffer shows new root directory):
+  expandable/
+  + deep/
+    1.txt
+    2.txt
+
+================================================================================
+
+Do (move into a directory and back):
+  ggj=-
+
+Expect (buffer shows original root directory):
   tmp-test/
   + expandable/
     folded-dir/directory/
