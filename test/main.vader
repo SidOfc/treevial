@@ -1,7 +1,10 @@
 Execute (setting up test environment and helpers):
+  let g:__vader_repo_root__ = getcwd()
+  let g:__vader_test_root__ = __vader_repo_root__ . '/tmp-test'
+
   function! TestSetup(...) abort
-    call mkdir('tmp-test', 'p')
-    chdir tmp-test
+    call mkdir(g:__vader_test_root__, 'p')
+    exe 'chdir' g:__vader_test_root__
     call TestWith(get(a:000, 0, []))
   endfunction
 
@@ -38,8 +41,8 @@ Execute (setting up test environment and helpers):
   endfunction
 
   function! TestTeardown() abort
-    chdir! -
-    call delete('tmp-test', 'rf')
+    exe 'chdir!' g:__vader_repo_root__
+    call delete(g:__vader_test_root__, 'rf')
   endfunction
 
   function! TestConfirmChoice(choice) abort
