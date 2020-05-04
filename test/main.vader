@@ -3,6 +3,7 @@ Execute (setting up test environment and helpers):
   let g:__vader_test_root__ = __vader_repo_root__ . '/tmp-test'
 
   function! TestSetup(...) abort
+    Log '-+-+-+-+-+-+-+-'
     call mkdir(g:__vader_test_root__, 'p')
     exe 'chdir' g:__vader_test_root__
     call TestWith(get(a:000, 0, []))
