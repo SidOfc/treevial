@@ -9,7 +9,7 @@
   Treevial isn't perfect, but it also isn't &readonly + &modified.
 
 ==============================================================================
-TABLE OF CONTENTS                                                 *treevial-toc*
+TABLE OF CONTENTS                               *treevial-contents* *treevial-toc*
 
   To quickly jump to this global table of contents, use |gg| or |go|.
 
@@ -23,7 +23,7 @@ TABLE OF CONTENTS                                                 *treevial-toc*
   HIGHLIGHTING `.............` |treevial-highlighting|
 
 ==============================================================================
-HONORABLE MENTIONS                                 *treevial-honorable-mentions*
+HONORABLE MENTIONS               *treevial-mentions* *treevial-honorable-mentions*
 
   While I wrote most of this plugin from scratch, I certainly did not discover
   all the functionality by myself. I also took what I thought was great about
@@ -41,7 +41,7 @@ HONORABLE MENTIONS                                 *treevial-honorable-mentions*
       more than one Treevial buffer is shown.
 
 ==============================================================================
-MAPPINGS                                                     *treevial-mappings*
+MAPPINGS                                *treevial-keybindings* *treevial-mappings*
 
   Treevial supports the following mappings:
 
@@ -217,7 +217,7 @@ MAPPINGS                                                     *treevial-mappings*
   will also move to the "hello/nested/" directory.
 
 ==============================================================================
-CUSTOM MAPPINGS                                       *treevial-custom-mappings*
+CUSTOM MAPPINGS           *treevial-custom-keybindings* *treevial-custom-mappings*
 
   Treevial understands that it must not interfere with user defined mappings.
   While it does not perform lots of magic checks, there is a way to disable
