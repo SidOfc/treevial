@@ -277,28 +277,40 @@ HIGHLIGHTING                                 *treevial-hl* *treevial-highlightin
   Treevial highlights files and directories based on their type.
   The following types exist:
 
-  TYPE                     HIGHLIGHT GROUP ~
-  directory                TreevialDir
-  file                     TreevialFile
-  executable               TreevialExecutable
-  symlink                  TreevialSymlink
-  broken symlink           TreevialBrokenSymlink
+  TYPE                      HIGHLIGHT GROUP ~
+  `============================================================================`
+  directory               `|` TreevialDir
+  `----------------------------------------------------------------------------`
+  file                    `|` TreevialFile
+  `----------------------------------------------------------------------------`
+  executable              `|` TreevialExecutable
+  `----------------------------------------------------------------------------`
+  symlink                 `|` TreevialSymlink
+  `----------------------------------------------------------------------------`
+  broken symlink          `|` TreevialBrokenSymlink
+  `============================================================================`
 
   Besides marking files and directories, there is an extra highlight group
   for the directory open / closed indicator:
 
-  WHAT                     HIGHLIGHT GROUP ~
-  directory marker         TreevialDirState
+  WHAT                      HIGHLIGHT GROUP ~
+  `============================================================================`
+  directory marker        `|` TreevialDirState
+  `============================================================================`
 
   When starting a selection, a special mode is activated with the following
   highlighting rules:
 
-  WHAT                     HIGHLIGHT GROUP ~
-  file                     TreevialDefaultMark
-  marked file / directory  TreevialSelectedMark
-  unselected directory
-  containing some marked
-  files / directories      TreevialPartialMark
+  WHAT                      HIGHLIGHT GROUP ~
+  `============================================================================`
+  file                    `|` TreevialDefaultMark
+  `----------------------------------------------------------------------------`
+  marked file / directory `|` TreevialSelectedMark
+  `----------------------------------------------------------------------------`
+  unselected directory    `|`
+  containing some marked  `|`
+  files / directories     `|` TreevialPartialMark
+  `============================================================================`
 
   To get information about any of the above highlight groups, please consult
   Vim's |:verbose| command to find out more about applied colors, for example,
