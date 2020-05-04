@@ -259,7 +259,17 @@ Expect (buffer shows new root directory):
 
 ================================================================================
 
-Do (move into a directory and back):
+Do (move into a deeply nested directory):
+  ggj\<Cr>j=
+
+Expect (buffer shows new root directory):
+  deep/
+    3.txt
+    4.txt
+
+================================================================================
+
+Do (move up a directory):
   ggj=-
 
 Expect (buffer shows original root directory):
@@ -272,3 +282,36 @@ Expect (buffer shows original root directory):
     example.ln
     example.sh
     example.txt
+
+================================================================================
+
+Do (move up multiple directories by preceding a count):
+  ggj\<Cr>j=2-
+
+Expect (buffer shows original root directory):
+  tmp-test/
+  + expandable/
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
+    broken.ln
+    example.ln
+    example.sh
+    example.txt
+
+================================================================================
+
+Do (move into a folded directory):
+  ggjj=
+
+Expect (buffer shows new root directory):
+  folded-dir/
+    directory/
+
+================================================================================
+
+Do (move deeper into a folded directory):
+  ggjj2=
+
+Expect (buffer shows new root directory):
+  directory/

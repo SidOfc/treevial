@@ -143,8 +143,8 @@ function! treevial#down() abort
   if s:util.is_entry(entry)
     let base       = substitute(entry.path, entry.name, '', '')
     let parts      = split(s:util.strip_trailing_slash(entry.name), '/')
-    let max_offset = min([len(parts) - 1, v:count1]) - !entry.is_dir
-    let dest       = base . join(parts[0:max_offset], '/')
+    let max_offset = len(parts) - 1 - !entry.is_dir
+    let dest       = base . join(parts[:max_offset][:(v:count1 - 1)], '/')
 
     if max_offset >? -1
       exe 'cd' dest
