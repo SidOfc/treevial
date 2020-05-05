@@ -163,7 +163,7 @@ function! s:view.buffer(...) abort
   let b:entries = []
   let b:root    = s:entry.new(get(options, 'cwd', getcwd()))
 
-  setlocal noru nonu nornu noma nomod ro noswf nospell
+  setlocal noru nonu nornu noma nomod ro noswf nospell nowrap
   setlocal bufhidden=hide buftype=nowrite buftype=nofile
 
   call b:root.sync()
