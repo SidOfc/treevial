@@ -174,8 +174,8 @@ endfunction
 function! s:view.mappings() abort
   if s:settings.default_mappings
     nnoremap <silent><nowait><buffer> <Cr>    :call treevial#open()<Cr>
-    nnoremap <silent><nowait><buffer> <C-v>   :call treevial#open({'command': 'vspl', 'dirs': 0})<Cr>
-    nnoremap <silent><nowait><buffer> <C-x>   :call treevial#open({'command': 'spl',  'dirs': 0})<Cr>
+    nnoremap <silent><nowait><buffer> <C-v>   :<C-u>call treevial#open({'command': 'vspl', 'dirs': 0})<Cr>
+    nnoremap <silent><nowait><buffer> <C-x>   :<C-u>call treevial#open({'command': 'spl',  'dirs': 0})<Cr>
     nnoremap <silent><nowait><buffer> <Tab>   :call treevial#mark()<Cr>
     nnoremap <silent><nowait><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
     nnoremap <silent><nowait><buffer> u       :call treevial#unmark_all()<Cr>
@@ -317,9 +317,31 @@ function! s:entry.merge(other) abort dict
 endfunction
 
 function! s:entry.open(...) abort dict
-  let options = get(a:, 1, {})
+  let options        = get(a:, 1, {})
+  let treevial_bufnr = bufnr('%')
+  let command        = get(options, 'command', 'edit')
+  let target_column  = v:count
+  let escaped_path   = fnameescape(self.path)
+  let target_buffer  = get(filter(getwininfo(),
+        \ {_, buf -> (has_key(buf.variables, 'treevial_data') &&
+        \             buf.variables.treevial_data.command ==# command &&
+        \             buf.variables.treevial_data.origin_bufnr ==# treevial_bufnr &&
+        \             buf.variables.treevial_data.column ==# target_column)}),
+        \ 0, {})
+  let target_winid   = bufwinid(get(target_buffer, 'bufnr', -1))
 
-  exe get(options, 'command', 'edit') fnameescape(self.path)
+  if target_winid ># -1
+    echom 're-using' command 'column' target_column
+    call win_gotoid(target_winid)
+    exe 'edit' escaped_path
+  else
+    echom 'creating' command 'column' target_column
+    exe command escaped_path
+    call setwinvar(winnr(), 'treevial_data', {
+          \ 'origin_bufnr': treevial_bufnr,
+          \ 'command': command,
+          \ 'column': target_column})
+  endif
 endfunction
 
 function! s:entry.toggle(...) abort dict
