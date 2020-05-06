@@ -373,8 +373,9 @@ endfunction
 function! s:entry.expand(...) abort dict
   if !has_key(self, '_expanded')
     for child_entry in self.children()
-      let result_entry = child_entry
-      let symlinks     = [result_entry.is_symlink]
+      let result_entry    = child_entry
+      let symlinks        = [result_entry.is_symlink]
+      let original_parent = result_entry.parent()
 
       while len(result_entry.children()) ==# 1
         let result_entry = result_entry.children()[0]
@@ -386,7 +387,7 @@ function! s:entry.expand(...) abort dict
               \.merge(result_entry)
               \.merge({
               \ 'name': substitute(result_entry.path, self.path, '', ''),
-              \ '_children': result_entry.fetched_children()})
+              \ '_parent': original_parent})
       endif
       call child_entry.merge({'symlinks': symlinks})
     endfor
