@@ -48,7 +48,7 @@ motivation was born and put to use for a (hopefully) more positive experience.
 
 - [x] Completely isolate tests from each other.
 - [x] Make mappings configurable.
-- [-] Support "sidebar" style.
+- [ ] Support "sidebar" style.
 - [ ] Write more tests
     - [ ] marking / unmarking child directories
     - [ ] marking / unmarking folded paths
