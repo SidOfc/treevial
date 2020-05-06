@@ -387,7 +387,8 @@ function! s:entry.expand(...) abort dict
               \.merge(result_entry)
               \.merge({
               \ 'name': substitute(result_entry.path, self.path, '', ''),
-              \ '_parent': original_parent})
+              \ '_parent': original_parent,
+              \ '_children': result_entry.fetched_children()})
       endif
       call child_entry.merge({'symlinks': symlinks})
     endfor
