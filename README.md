@@ -29,10 +29,13 @@ motivation was born and put to use for a (hopefully) more positive experience.
 
 ## Core functionality
 
-- it has 2 mappings to handle directory expanding / collapsing
+- It has 2 mappings for navigating up and down the tree
+  - <kbd>-</kbd>: may be preceded by a count of how many directories to move up
+  - <kbd>=</kbd>: move into directory, may be preceded by count on folded paths to move into Nth directory from left
+- It has 2 mappings to handle directory expanding / collapsing
   - <kbd>enter</kbd>: toggle directory open / closed or if file, open it in a buffer
   - <kbd>shift</kbd>+<kbd>enter</kbd>: same as enter except when closing, closes all nested child directories (**nvim only by default**)
-- it has 3 mappings for performing actions:
+- It has 3 mappings for performing actions:
   - <kbd>m</kbd>: Move below cursor or selection
   - <kbd>d</kbd>: Delete below cursor or selection
   - <kbd>c</kbd>: Create below cursor or directory
@@ -44,9 +47,14 @@ motivation was born and put to use for a (hopefully) more positive experience.
 ## Roadmap
 
 - [x] Completely isolate tests from each other.
-- [ ] Support "sidebar" style.
 - [x] Make mappings configurable.
-- [ ] Document, document, document, document, document!!
+- [-] Support "sidebar" style.
+- [ ] Write more tests
+    - [ ] marking / unmarking child directories
+    - [ ] marking / unmarking folded paths
+    - [ ] moving more than one file / directory at once
+- [ ] Cache the tree when moving up in `s:`, set `b:` root when moving around
+- [ ] Make the README user-friendly
 
 ## Development
 
