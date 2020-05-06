@@ -35,8 +35,8 @@ function! treevial#open(...) abort
       call entry.toggle(options)
       call s:view.render()
     elseif get(options, 'files', 1)
-      call clearmatches()
       call entry.open(options)
+      call clearmatches()
     endif
   endif
 endfunction
@@ -458,14 +458,13 @@ function! s:entry.synchronize_with(previous) abort dict
 
   for new_entry in new_entries
     let old_entry = get(old_entries_by_path, new_entry.path, 0)
-
     if s:util.is_entry(old_entry)
-      call new_entry.merge({'is_marked': old_entry.is_marked})
       if new_entry.modified ==# old_entry.modified
         call new_entry.merge(old_entry)
       elseif new_entry.is_dir && old_entry.is_dir && old_entry.is_open
         call new_entry.synchronize_with(old_entry)
       endif
+      call new_entry.merge({'_parent': self})
     endif
   endfor
 
