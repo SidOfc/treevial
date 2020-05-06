@@ -11,7 +11,6 @@ let s:test               = {}
 let s:io                 = {}
 let s:view               = {}
 let s:entry              = {}
-let s:mark_prefix        = has('multi_byte') ? '• ' : '* '
 let s:is_nvim            = has('nvim')
 let s:is_vim             = !s:is_nvim
 let s:fn_type            = type(function('getline'))
@@ -21,7 +20,8 @@ set cpo&vim
 
 " {{{ startup configuration settings
 let s:settings = {
-      \ 'default_mappings': get(g:, 'treevial_default_mappings', v:version >=? 703)
+      \ 'default_mappings': get(g:, 'treevial_default_mappings', v:version >=? 703),
+      \ 'mark_symbol': get(g:, 'treevial_mark_symbol', has('multi_byte') ? '• ' : '* ')
       \ }
 " }}}
 
@@ -200,7 +200,7 @@ function! s:view.render() abort
   let saved_view   = winsaveview()
   let target       = bufname('%')
   let current_lnum = 0
-  let mark_prefix  = b:root.has_marked_entries() ? s:mark_prefix : '  '
+  let mark_prefix  = b:root.has_marked_entries() ? s:settings.mark_symbol : '  '
 
   setlocal ma noro
 
