@@ -46,7 +46,7 @@ motivation was born and put to use for a (hopefully) more positive experience.
 
 ## Roadmap
 
-- [ ] Fix resync issue causing failure to unmark parent entries properly
+- [x] Fix resync issue causing failure to unmark parent entries properly
 - [x] Completely isolate tests from each other.
 - [x] Make mappings configurable.
 - [ ] Support "sidebar" style.
