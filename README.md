@@ -46,6 +46,7 @@ motivation was born and put to use for a (hopefully) more positive experience.
 
 ## Roadmap
 
+- [x] Fix resync issue causing failure to unmark parent entries properly
 - [x] Completely isolate tests from each other.
 - [x] Make mappings configurable.
 - [ ] Support "sidebar" style.
@@ -53,7 +54,9 @@ motivation was born and put to use for a (hopefully) more positive experience.
     - [ ] marking / unmarking child directories
     - [ ] marking / unmarking folded paths
     - [ ] moving more than one file / directory at once
+    - [ ] deleting more than one file / directory at once
 - [ ] Cache the tree when moving up in `s:`, set `b:` root when moving around
+    - Will need to take extra care with marks when showing multiple treevial buffers at once
 - [ ] Make the README user-friendly
 
 ## Development
