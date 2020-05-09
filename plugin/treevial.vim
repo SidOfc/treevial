@@ -21,13 +21,14 @@ set cpo&vim
 " {{{ startup configuration settings
 let s:settings = {
       \ 'default_mappings': get(g:, 'treevial_default_mappings', v:version >=? 703),
-      \ 'mark_symbol': get(g:, 'treevial_mark_symbol', has('multi_byte') ? '• ' : '* ')
+      \ 'mark_symbol': get(g:, 'treevial_mark_symbol', has('multi_byte') ? '• ' : '* '),
+      \ 'sidebar': get(g:, 'treevial_sidebar', 1)
       \ }
 " }}}
 
 " {{{ main functionality
 function! treevial#open(...) abort
-  let options = get(a:, 1, {})
+  let options = deepcopy(get(a:, 1, {}))
   let entry   = s:util.lnum_to_entry(line('.'))
 
   if s:util.is_entry(entry)
@@ -186,6 +187,7 @@ function! s:view.buffer(...) abort
 endfunction
 
 function! s:view.sidebar(...) abort
+  let s:settings.sidebar = 1
   leftabove 25vnew
 
   Treevial
@@ -338,29 +340,23 @@ endfunction
 
 function! s:entry.open(...) abort dict
   let options        = get(a:, 1, {})
-  let treevial_bufnr = bufnr('%')
-  let command        = get(options, 'vertical')
-        \ ? 'vspl'
-        \ : (get(options, 'horizontal') ? 'spl' : 'edit')
-  let target_index   = v:count
+  let spl_hor        = get(options, 'horizontal')
+  let spl_vert       = get(options, 'vertical', !spl_hor && s:settings.sidebar)
   let escaped_path   = fnameescape(self.path)
-  let target_buffers = filter(getwininfo(),
-        \ {_, buf -> (has_key(buf.variables, 'treevial_data') &&
-        \             buf.variables.treevial_data.command ==# command &&
-        \             buf.variables.treevial_data.origin_bufnr ==# treevial_bufnr)})
-  let target_buffer  = get(filter(
-        \ copy(target_buffers),
-        \ {_, buf -> buf.variables.treevial_data.index ==# target_index}), 0, {})
+  let command        = spl_vert ? 'vsplit' : spl_hor ? 'split' : 'edit'
+  let target_buffers = s:util.opened_by_treevial(command)
+  let target_buffer  = get(filter(copy(target_buffers),
+        \ {_, buf -> buf.variables.treevial_data.index ==# v:count}), 0, {})
   let target_winid   = bufwinid(get(target_buffer, 'bufnr', -1))
 
   if target_winid ># -1
     call win_gotoid(target_winid)
     exe 'edit' escaped_path
   else
-    if target_index
+    if v:count
       let align_after = get(filter(
             \ copy(target_buffers),
-            \ {_, buf -> buf.variables.treevial_data.index <# target_index}),
+            \ {_, buf -> buf.variables.treevial_data.index <# v:count}),
             \ -1, {})
       let align_winid = bufwinid(get(align_after, 'bufnr', -1))
 
@@ -369,11 +365,14 @@ function! s:entry.open(...) abort dict
       endif
     endif
 
-    exe command escaped_path
-    call setwinvar(winnr(), 'treevial_data', {
-          \ 'origin_bufnr': treevial_bufnr,
-          \ 'command': command,
-          \ 'index': target_index})
+    if (&columns - 25 >? 0) && spl_vert &&
+          \ s:util.only_one_window_visible() && s:settings.sidebar
+      exe (string(&columns - 25) . command) escaped_path
+    else
+      exe command escaped_path
+    endif
+
+    call setwinvar(winnr(), 'treevial_data', {'command': command, 'index': v:count})
   endif
 endfunction
 
@@ -555,6 +554,17 @@ endfunction
 " }}}
 
 " {{{ s:util helpers
+function! s:util.only_one_window_visible() abort
+  return len(get(get(gettabinfo(tabpagenr()), 0, {}), 'windows', [])) ==# 1
+endfunction
+
+function! s:util.opened_by_treevial(...) abort
+  let command = get(a:, 1, 'edit')
+  return filter(getwininfo(),
+        \ {_, buf -> has_key(buf.variables, 'treevial_data') &&
+        \            buf.variables.treevial_data.command ==# command})
+endfunction
+
 function! s:util.strip_trailing_slash(path)
   return substitute(a:path, '\/\+$', '', '')
 endfunction
