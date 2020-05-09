@@ -130,6 +130,17 @@ function! treevial#destroy() abort
   endif
 endfunction
 
+function! treevial#on_dir_change(path) abort
+  if bufexists('treevial')
+    let current_winid  = bufwinid('')
+    let treevial_winid = bufwinid('treevial')
+
+    if current_winid !=# treevial_winid | call win_gotoid(treevial_winid) | endif
+    Treevial
+    if current_winid !=# treevial_winid | call win_gotoid(current_winid)  | endif
+  endif
+endfunction
+
 function! treevial#up(...) abort
   exe 'cd' fnamemodify(
         \ s:util.strip_trailing_slash(b:root.path),
@@ -148,6 +159,7 @@ function! treevial#down() abort
 
     if max_offset >? -1
       exe 'cd' dest
+
       Treevial
     endif
   endif
@@ -156,8 +168,10 @@ endfunction
 
 " {{{ s:view helpers
 function! s:view.buffer(...) abort
-  edit treevial
-  set filetype=treevial
+  if !bufexists('treevial')
+    edit treevial
+    setfiletype treevial
+  endif
 
   let options   = get(a:, 1, {})
   let b:entries = []
@@ -320,27 +334,38 @@ function! s:entry.open(...) abort dict
   let options        = get(a:, 1, {})
   let treevial_bufnr = bufnr('%')
   let command        = get(options, 'command', 'edit')
-  let target_column  = v:count
+  let target_index   = v:count
   let escaped_path   = fnameescape(self.path)
-  let target_buffer  = get(filter(getwininfo(),
+  let target_buffers = filter(getwininfo(),
         \ {_, buf -> (has_key(buf.variables, 'treevial_data') &&
         \             buf.variables.treevial_data.command ==# command &&
-        \             buf.variables.treevial_data.origin_bufnr ==# treevial_bufnr &&
-        \             buf.variables.treevial_data.column ==# target_column)}),
-        \ 0, {})
+        \             buf.variables.treevial_data.origin_bufnr ==# treevial_bufnr)})
+  let target_buffer  = get(filter(
+        \ copy(target_buffers),
+        \ {_, buf -> buf.variables.treevial_data.index ==# target_index}), 0, {})
   let target_winid   = bufwinid(get(target_buffer, 'bufnr', -1))
 
   if target_winid ># -1
-    echom 're-using' command 'column' target_column
     call win_gotoid(target_winid)
     exe 'edit' escaped_path
   else
-    echom 'creating' command 'column' target_column
+    if target_index
+      let align_after = get(filter(
+            \ copy(target_buffers),
+            \ {_, buf -> buf.variables.treevial_data.index <# target_index}),
+            \ -1, {})
+      let align_winid = bufwinid(get(align_after, 'bufnr', -1))
+
+      if align_winid ># -1
+        call win_gotoid(align_winid)
+      endif
+    endif
+
     exe command escaped_path
     call setwinvar(winnr(), 'treevial_data', {
           \ 'origin_bufnr': treevial_bufnr,
           \ 'command': command,
-          \ 'column': target_column})
+          \ 'index': target_index})
   endif
 endfunction
 
@@ -528,12 +553,6 @@ endfunction
 
 function! s:util.lnum_to_entry(lnum) abort
   return a:lnum >? 1 ? get(get(b:entries, a:lnum - 2, []), 0, 0) : 0
-endfunction
-
-function! s:util.keep_cursor_below_root() abort
-  if line('.') <=? 1
-    call cursor(2, col('.'))
-  endif
 endfunction
 
 function! s:util.each_view(func) abort
@@ -942,8 +961,8 @@ augroup Treevial
         \   call s:view.render() |
         \   let b:active = 1 |
         \ endif
-  autocmd CursorMoved treevial
-        \ call s:util.keep_cursor_below_root()
+  autocmd DirChanged *
+        \ call treevial#on_dir_change(v:event.cwd)
 augroup END
 " }}}
 
