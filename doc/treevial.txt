@@ -93,7 +93,7 @@ MAPPINGS                                *treevial-keybindings* *treevial-mapping
   yet on plain vim. For this reason, this key is only mapped in neovim!
 
 
-<C-V> `:call treevial#open({'command': 'vspl', 'dirs': 0})<CR>`   *treevial-<c-v>*
+<C-V> `:call treevial#open({'vertical': 1})<CR>`                  *treevial-<c-v>*
                                                                   *treevial-c-v*
 
   Pressing <C-V> will not put you in |visual-block| mode. Instead, Treevial
@@ -103,7 +103,7 @@ MAPPINGS                                *treevial-keybindings* *treevial-mapping
   to use this mapping on a directory.
 
 
-<C-X> `:call treevial#open({'command': 'spl', 'dirs': 0})<CR>`    *treevial-<c-x>*
+<C-X> `:call treevial#open({'horizontal': 1})<CR>`                *treevial-<c-x>*
                                                                   *treevial-c-x*
 
   Like |treevial-<c-v>|, but using a horizontal |split|.
@@ -232,42 +232,46 @@ CUSTOM MAPPINGS           *treevial-custom-keybindings* *treevial-custom-mapping
   mappings for Treevial instead. This can be done with a special |autocmd|
   called `TreevialMappings` and can be used like this:
 
-      autocmd! User TreevialMappings
-      autocmd  User TreevialMappings
-        \ nnoremap <silent><nowait><buffer> u :call treevial#unmark_all()<Cr>
+  `<<< snippet`
+    autocmd! User TreevialMappings
+    autocmd  User TreevialMappings
+      \ nnoremap <silent><nowait><buffer> u :call treevial#unmark_all()<Cr>
+  `>>> snippet END`
 
   This autocmd gets called if it exists and after the default mappings have
   been processed. For more complex configurations and mappings, using a
   function is much more flexible. The following example disables
   all the default mappings and uses the autocmd to enable them:
 
-      function! MappingsForTreevial() abort
-        nnoremap <silent><nowait><buffer> <Cr>    :call treevial#open()<Cr>
-        nnoremap <silent><nowait><buffer> <Tab>   :call treevial#mark()<Cr>
-        nnoremap <silent><nowait><buffer> d       :call treevial#destroy()<Cr>
-        nnoremap <silent><nowait><buffer> m       :call treevial#move()<Cr>
-        nnoremap <silent><nowait><buffer> c       :call treevial#create()<Cr>
-        nnoremap <silent><nowait><buffer> u
-            \ :call treevial#unmark_all()<Cr>
+  `<<< snippet`
+    function! MappingsForTreevial() abort
+      nnoremap <silent><nowait><buffer> <Cr>    :call treevial#open()<Cr>
+      nnoremap <silent><nowait><buffer> <Tab>   :call treevial#mark()<Cr>
+      nnoremap <silent><nowait><buffer> d       :call treevial#destroy()<Cr>
+      nnoremap <silent><nowait><buffer> m       :call treevial#move()<Cr>
+      nnoremap <silent><nowait><buffer> c       :call treevial#create()<Cr>
+      nnoremap <silent><nowait><buffer> u
+          \ :call treevial#unmark_all()<Cr>
 
-        nnoremap <silent><nowait><buffer> <S-Tab>
-            \ :call treevial#mark({'shift': 1})<Cr>
+      nnoremap <silent><nowait><buffer> <S-Tab>
+          \ :call treevial#mark({'shift': 1})<Cr>
 
-        nnoremap <silent><nowait><buffer> <C-v>
-            \ :call treevial#open({'command': 'vspl', 'dirs:' 0})<Cr>
+      nnoremap <silent><nowait><buffer> <C-v>
+          \ :call treevial#open({'vertical': 1})<Cr>
 
-        nnoremap <silent><nowait><buffer> <C-x>
-            \ :call treevial#open({'command': 'spl',  'dirs': 0})<Cr>
+      nnoremap <silent><nowait><buffer> <C-x>
+          \ :call treevial#open({'horizontal': 1})<Cr>
 
-        if has('nvim')
-          nnoremap <silent><nowait><buffer> <S-Cr>
-              \ :call treevial#open({'shift': 1})<Cr>
-        endif
-      endfunction
+      if has('nvim')
+        nnoremap <silent><nowait><buffer> <S-Cr>
+            \ :call treevial#open({'shift': 1})<Cr>
+      endif
+    endfunction
 
-      let g:treevial_default_mappings = 0
-      autocmd! User TreevialMappings
-      autocmd  User TreevialMappings call MappingsForTreevial()
+    let g:treevial_default_mappings = 0
+    autocmd! User TreevialMappings
+    autocmd  User TreevialMappings call MappingsForTreevial()
+  `>>> snippet END`
 
   This gives you full control over what is mapped and how it is mapped.
 

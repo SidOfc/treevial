@@ -31,10 +31,10 @@ function! treevial#open(...) abort
   let entry   = s:util.lnum_to_entry(line('.'))
 
   if s:util.is_entry(entry)
-    if entry.is_dir && get(options, 'dirs', 1)
+    if entry.is_dir
       call entry.toggle(options)
       call s:view.render()
-    elseif get(options, 'files', 1)
+    else
       call entry.open(options)
       call clearmatches()
     endif
@@ -168,7 +168,7 @@ endfunction
 
 " {{{ s:view helpers
 function! s:view.buffer(...) abort
-  if !bufexists('treevial')
+  if !bufloaded({'filetype': 'treevial'})
     edit treevial
     setfiletype treevial
   endif
@@ -185,11 +185,17 @@ function! s:view.buffer(...) abort
   call s:view.render()
 endfunction
 
+function! s:view.sidebar(...) abort
+  leftabove 25vnew
+
+  Treevial
+endfunction
+
 function! s:view.mappings() abort
   if s:settings.default_mappings
     nnoremap <silent><nowait><buffer> <Cr>    :call treevial#open()<Cr>
-    nnoremap <silent><nowait><buffer> <C-v>   :<C-u>call treevial#open({'command': 'vspl', 'dirs': 0})<Cr>
-    nnoremap <silent><nowait><buffer> <C-x>   :<C-u>call treevial#open({'command': 'spl',  'dirs': 0})<Cr>
+    nnoremap <silent><nowait><buffer> <C-v>   :<C-u>call treevial#open({'vertical': 1})<Cr>
+    nnoremap <silent><nowait><buffer> <C-x>   :<C-u>call treevial#open({'horizontal': 1})<Cr>
     nnoremap <silent><nowait><buffer> <Tab>   :call treevial#mark()<Cr>
     nnoremap <silent><nowait><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
     nnoremap <silent><nowait><buffer> u       :call treevial#unmark_all()<Cr>
@@ -333,7 +339,9 @@ endfunction
 function! s:entry.open(...) abort dict
   let options        = get(a:, 1, {})
   let treevial_bufnr = bufnr('%')
-  let command        = get(options, 'command', 'edit')
+  let command        = get(options, 'vertical')
+        \ ? 'vspl'
+        \ : (get(options, 'horizontal') ? 'spl' : 'edit')
   let target_index   = v:count
   let escaped_path   = fnameescape(self.path)
   let target_buffers = filter(getwininfo(),
@@ -404,7 +412,7 @@ endfunction
 
 function! s:entry.collapse(...) abort dict
   let options   = get(a:, 1, {})
-  let recursive = get(options, 'shift', 0)
+  let recursive = get(options, 'shift')
 
   call self.merge({'is_open': 0})
 
@@ -468,7 +476,7 @@ function! s:entry.children() abort dict
 endfunction
 
 function! s:entry.parent() abort dict
-  return get(self, '_parent', 0)
+  return get(self, '_parent')
 endfunction
 
 function! s:entry.fetched_children() abort dict
@@ -504,7 +512,7 @@ function! s:entry.synchronize_with(previous) abort dict
   endfor
 
   for new_entry in new_entries
-    let old_entry = get(old_entries_by_path, new_entry.path, 0)
+    let old_entry = get(old_entries_by_path, new_entry.path)
     if s:util.is_entry(old_entry)
       if new_entry.modified ==# old_entry.modified
         for old_entry_child in old_entry.fetched_children()
@@ -552,7 +560,7 @@ function! s:util.strip_trailing_slash(path)
 endfunction
 
 function! s:util.lnum_to_entry(lnum) abort
-  return a:lnum >? 1 ? get(get(b:entries, a:lnum - 2, []), 0, 0) : 0
+  return a:lnum >? 1 ? get(get(b:entries, a:lnum - 2, []), 0) : 0
 endfunction
 
 function! s:util.each_view(func) abort
@@ -948,7 +956,8 @@ function! s:vimenter() abort
 endfunction
 
 if !exists(':Treevial')
-  command -bang Treevial call s:view.buffer({'bang': <bang>0})
+  command Treevial        call s:view.buffer()
+  command TreevialSidebar call s:view.sidebar()
 endif
 
 augroup Treevial
@@ -966,7 +975,7 @@ augroup Treevial
 augroup END
 " }}}
 
-" {{{ test 'helpers'
+" {{{ test helpers
 function! s:test.vader_confirmed() abort
   return get(g:, '__treevial_vader_confirm_reply__', '') != ''
 endfunction
