@@ -28,7 +28,7 @@ let s:settings = {
 
 " {{{ main functionality
 function! treevial#open(...) abort
-  let options = deepcopy(get(a:, 1, {}))
+  let options = get(a:, 1, {})
   let entry   = s:util.lnum_to_entry(line('.'))
 
   if s:util.is_entry(entry)
@@ -137,17 +137,15 @@ function! treevial#on_dir_change(path) abort
     let treevial_winid = bufwinid('treevial')
 
     if current_winid !=# treevial_winid | call win_gotoid(treevial_winid) | endif
-    Treevial
+    call s:view.buffer()
     if current_winid !=# treevial_winid | call win_gotoid(current_winid)  | endif
   endif
 endfunction
 
 function! treevial#up(...) abort
-  exe 'cd' fnamemodify(
+  exe 'chdir' fnamemodify(
         \ s:util.strip_trailing_slash(b:root.path),
         \ repeat(':h', v:count1))
-
-  Treevial
 endfunction
 
 function! treevial#down() abort
@@ -159,9 +157,7 @@ function! treevial#down() abort
     let dest       = base . join(parts[:max_offset][:(v:count1 - 1)], '/')
 
     if max_offset >? -1
-      exe 'cd' dest
-
-      Treevial
+      exe 'chdir' dest
     endif
   endif
 endfunction
@@ -169,14 +165,17 @@ endfunction
 
 " {{{ s:view helpers
 function! s:view.buffer(...) abort
+  let options = get(a:, 1, {})
+
   if !bufloaded({'filetype': 'treevial'})
     edit treevial
     setfiletype treevial
-  endif
 
-  let options   = get(a:, 1, {})
-  let b:entries = []
-  let b:root    = s:entry.new(get(options, 'cwd', getcwd()))
+    call setwinvar(winnr(), 'treevial_sidebar', get(options, 'sidebar', 0))
+
+    let b:entries = []
+    let b:root    = s:entry.new(get(options, 'cwd', getcwd()))
+  endif
 
   setlocal noru nonu nornu noma nomod ro noswf nospell nowrap
   setlocal bufhidden=hide buftype=nowrite buftype=nofile
@@ -187,10 +186,17 @@ function! s:view.buffer(...) abort
 endfunction
 
 function! s:view.sidebar(...) abort
-  let s:settings.sidebar = 1
   leftabove 25vnew
+  call setwinvar(winnr(), 'treevial_sidebar', 1)
+  call s:view.buffer()
+endfunction
 
-  Treevial
+function! s:view.is_sidebar() abort
+  return getwinvar(winnr(), 'treevial_sidebar', 0)
+endfunction
+
+function! s:view.only_one_window_visible() abort
+  return len(get(get(gettabinfo(tabpagenr()), 0, {}), 'windows', [])) ==# 1
 endfunction
 
 function! s:view.mappings() abort
@@ -340,11 +346,12 @@ endfunction
 
 function! s:entry.open(...) abort dict
   let options        = get(a:, 1, {})
+  let vert_opt       = get(options, 'vertical')
   let spl_hor        = get(options, 'horizontal')
-  let spl_vert       = get(options, 'vertical', !spl_hor && s:settings.sidebar)
+  let spl_vert       = vert_opt || (!spl_hor && s:view.is_sidebar())
   let escaped_path   = fnameescape(self.path)
   let command        = spl_vert ? 'vsplit' : spl_hor ? 'split' : 'edit'
-  let target_buffers = s:util.opened_by_treevial(command)
+  let target_buffers = (spl_hor || vert_opt) ? s:util.opened_by_treevial(command) : []
   let target_buffer  = get(filter(copy(target_buffers),
         \ {_, buf -> buf.variables.treevial_data.index ==# v:count}), 0, {})
   let target_winid   = bufwinid(get(target_buffer, 'bufnr', -1))
@@ -366,7 +373,7 @@ function! s:entry.open(...) abort dict
     endif
 
     if (&columns - 25 >? 0) && spl_vert &&
-          \ s:util.only_one_window_visible() && s:settings.sidebar
+          \ s:view.only_one_window_visible() && s:view.is_sidebar()
       exe (string(&columns - 25) . command) escaped_path
     else
       exe command escaped_path
@@ -554,10 +561,6 @@ endfunction
 " }}}
 
 " {{{ s:util helpers
-function! s:util.only_one_window_visible() abort
-  return len(get(get(gettabinfo(tabpagenr()), 0, {}), 'windows', [])) ==# 1
-endfunction
-
 function! s:util.opened_by_treevial(...) abort
   let command = get(a:, 1, 'edit')
   return filter(getwininfo(),
@@ -961,7 +964,7 @@ function! s:vimenter() abort
   if exists('#NERDTreeHijackNetrw') | exe 'au! NERDTreeHijackNetrw *' | endif
 
   if isdirectory(root_target) && no_lnum && !&insertmode && &modifiable
-    call s:view.buffer({'cwd': root_target})
+    call s:view.buffer({'cwd': root_target, 'sidebar': s:settings.sidebar})
   endif
 endfunction
 

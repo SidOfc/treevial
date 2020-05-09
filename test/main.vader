@@ -38,6 +38,7 @@ Execute (setting up test environment and helpers):
         call writefile([], abs_path, 'b')
       endif
     endfor
+
     Treevial
   endfunction
 
