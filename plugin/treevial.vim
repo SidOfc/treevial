@@ -981,6 +981,20 @@ function! s:vimenter() abort
   endif
 endfunction
 
+function! s:deactivate() abort
+  if exists('b:root') && &ft ==# 'treevial'
+    let b:active = 0
+  endif
+endfunction
+
+function! s:activate() abort
+  if exists('b:root') && &ft ==# 'treevial' && get(b:, 'active', 1) ==# 0
+    call b:root.sync()
+    call s:view.render()
+    let b:active = 1
+  endif
+endfunction
+
 if !exists(':Treevial')
   command Treevial        call s:view.buffer()
   command TreevialSidebar call s:view.buffer({'sidebar': 1})
@@ -989,13 +1003,8 @@ endif
 augroup Treevial
   autocmd!
   autocmd VimEnter * call s:vimenter()
-  autocmd BufLeave,FocusLost treevial let b:active = 0
-  autocmd BufEnter,FocusGained treevial
-        \ if get(b:, 'active', 1) ==# 0 |
-        \   call b:root.sync() |
-        \   call s:view.render() |
-        \   let b:active = 1 |
-        \ endif
+  autocmd BufLeave,FocusLost treevial call s:deactivate()
+  autocmd BufEnter,FocusGained treevial call s:activate()
 augroup END
 " }}}
 
