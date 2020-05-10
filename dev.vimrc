@@ -12,6 +12,7 @@ set rtp+=.
 " below are things I need to stay sane during development
 set wildignore=.git,.DS_Store
 set splitright splitbelow
+set nowrap
 
 if has('nvim')
   set termguicolors
