@@ -22,7 +22,7 @@ set cpo&vim
 let s:settings = {
       \ 'default_mappings': get(g:, 'treevial_default_mappings', v:version >=? 703),
       \ 'mark_symbol': get(g:, 'treevial_mark_symbol', has('multi_byte') ? '• ' : '* '),
-      \ 'sidebar': get(g:, 'treevial_sidebar', 1)
+      \ 'sidebar': get(g:, 'treevial_sidebar', 0)
       \ }
 " }}}
 
@@ -158,10 +158,11 @@ endfunction
 function! s:view.buffer(...) abort
   let options = get(a:, 1, {})
 
-  if !bufexists('treevial')
+  if !s:view.buffer_exists()
     edit treevial
     setfiletype treevial
 
+    call setwinvar(winnr(), 'treevial_buffer',  1)
     call setwinvar(winnr(), 'treevial_sidebar', get(options, 'sidebar', 0))
   endif
 
@@ -190,6 +191,12 @@ endfunction
 
 function! s:view.is_sidebar() abort
   return getwinvar(winnr(), 'treevial_sidebar', 0)
+endfunction
+
+function! s:view.buffer_exists() abort
+  return len(filter(
+        \ getwininfo(),
+        \ {_, win -> has_key(win.variables, 'treevial_buffer')})) ># 0
 endfunction
 
 function! s:view.only_one_window_visible() abort
