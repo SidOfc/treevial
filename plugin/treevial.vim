@@ -131,21 +131,12 @@ function! treevial#destroy() abort
   endif
 endfunction
 
-function! treevial#on_dir_change(path) abort
-  if bufexists('treevial')
-    let current_winid  = bufwinid('')
-    let treevial_winid = bufwinid('treevial')
-
-    if current_winid !=# treevial_winid | call win_gotoid(treevial_winid) | endif
-    call s:view.buffer()
-    if current_winid !=# treevial_winid | call win_gotoid(current_winid)  | endif
-  endif
-endfunction
-
 function! treevial#up(...) abort
-  exe 'chdir' fnamemodify(
+  let dest = fnamemodify(
         \ s:util.strip_trailing_slash(b:root.path),
         \ repeat(':h', v:count1))
+
+  call s:view.run({-> s:view.move_to(dest)})
 endfunction
 
 function! treevial#down() abort
@@ -157,7 +148,7 @@ function! treevial#down() abort
     let dest       = base . join(parts[:max_offset][:(v:count1 - 1)], '/')
 
     if max_offset >? -1
-      exe 'chdir' dest
+      call s:view.run({-> s:view.move_to(dest)})
     endif
   endif
 endfunction
@@ -167,7 +158,7 @@ endfunction
 function! s:view.buffer(...) abort
   let options = get(a:, 1, {})
 
-  if !bufloaded({'filetype': 'treevial'})
+  if !bufexists('treevial')
     edit treevial
     setfiletype treevial
 
@@ -182,6 +173,23 @@ function! s:view.buffer(...) abort
 
   call b:root.sync()
   call s:view.mappings()
+  call s:view.render()
+endfunction
+
+function! s:view.run(fn) abort
+  if bufexists('treevial')
+    let current_winid  = bufwinid('')
+    let treevial_winid = bufwinid('treevial')
+
+    if current_winid !=# treevial_winid | call win_gotoid(treevial_winid) | endif
+    call call(a:fn, [b:root])
+    if current_winid !=# treevial_winid | call win_gotoid(current_winid)  | endif
+  endif
+endfunction
+
+function! s:view.move_to(dest) abort
+  let b:root = s:entry.new(a:dest)
+  call b:root.sync()
   call s:view.render()
 endfunction
 
@@ -976,6 +984,7 @@ endif
 augroup Treevial
   autocmd!
   autocmd VimEnter * call s:vimenter()
+  autocmd DirChanged * call s:view.run({-> s:view.move_to(v:event.cwd)})
   autocmd BufLeave,FocusLost treevial let b:active = 0
   autocmd BufEnter,FocusGained treevial
         \ if get(b:, 'active', 1) ==# 0 |
@@ -983,8 +992,6 @@ augroup Treevial
         \   call s:view.render() |
         \   let b:active = 1 |
         \ endif
-  autocmd DirChanged *
-        \ call treevial#on_dir_change(v:event.cwd)
 augroup END
 " }}}
 
