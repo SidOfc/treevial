@@ -136,7 +136,7 @@ function! treevial#up(...) abort
         \ s:util.strip_trailing_slash(b:root.path),
         \ repeat(':h', v:count1))
 
-  call s:view.run({-> s:view.move_to(dest)})
+  call s:view.move_to(dest)
 endfunction
 
 function! treevial#down() abort
@@ -148,7 +148,7 @@ function! treevial#down() abort
     let dest       = base . join(parts[:max_offset][:(v:count1 - 1)], '/')
 
     if max_offset >? -1
-      call s:view.run({-> s:view.move_to(dest)})
+      call s:view.move_to(dest)
     endif
   endif
 endfunction
@@ -163,10 +163,10 @@ function! s:view.buffer(...) abort
     setfiletype treevial
 
     call setwinvar(winnr(), 'treevial_sidebar', get(options, 'sidebar', 0))
-
-    let b:entries = []
-    let b:root    = s:entry.new(get(options, 'cwd', getcwd()))
   endif
+
+  let b:entries = []
+  let b:root    = s:entry.new(get(options, 'cwd', getcwd()))
 
   setlocal noru nonu nornu noma nomod ro noswf nospell nowrap
   setlocal bufhidden=hide buftype=nowrite buftype=nofile
@@ -174,17 +174,6 @@ function! s:view.buffer(...) abort
   call b:root.sync()
   call s:view.mappings()
   call s:view.render()
-endfunction
-
-function! s:view.run(fn) abort
-  if bufexists('treevial')
-    let current_winid  = bufwinid('')
-    let treevial_winid = bufwinid('treevial')
-
-    if current_winid !=# treevial_winid | call win_gotoid(treevial_winid) | endif
-    call call(a:fn, [b:root])
-    if current_winid !=# treevial_winid | call win_gotoid(current_winid)  | endif
-  endif
 endfunction
 
 function! s:view.move_to(dest) abort
@@ -984,7 +973,6 @@ endif
 augroup Treevial
   autocmd!
   autocmd VimEnter * call s:vimenter()
-  autocmd DirChanged * call s:view.run({-> s:view.move_to(v:event.cwd)})
   autocmd BufLeave,FocusLost treevial let b:active = 0
   autocmd BufEnter,FocusGained treevial
         \ if get(b:, 'active', 1) ==# 0 |
