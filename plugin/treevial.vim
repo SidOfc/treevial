@@ -158,13 +158,11 @@ endfunction
 function! s:view.buffer(...) abort
   let options = get(a:, 1, {})
 
-  if !s:view.buffer_exists()
-    edit treevial
-    setfiletype treevial
+  edit treevial
+  setfiletype treevial
 
-    call setwinvar(winnr(), 'treevial_buffer',  1)
-    call setwinvar(winnr(), 'treevial_sidebar', get(options, 'sidebar', 0))
-  endif
+  call setwinvar(winnr(), 'treevial_buffer',  1)
+  call setwinvar(winnr(), 'treevial_sidebar', get(options, 'sidebar', 0))
 
   let b:entries = []
   let b:root    = s:entry.new(get(options, 'cwd', getcwd()))
