@@ -171,14 +171,14 @@ function! s:view.buffer(...) abort
   setlocal noru nonu nornu noma nomod ro noswf nospell nowrap
   setlocal bufhidden=hide buftype=nowrite buftype=nofile
 
-  call b:root.sync()
+  call b:root.expand()
   call s:view.mappings()
   call s:view.render()
 endfunction
 
 function! s:view.move_to(dest) abort
   let b:root = s:entry.new(a:dest)
-  call b:root.sync()
+  call b:root.expand()
   call s:view.render()
 endfunction
 
@@ -316,7 +316,7 @@ endfunction
 " {{{ s:entry model + helpers
 function! s:entry.new(path, ...) abort
   let is_dir   = isdirectory(a:path)
-  let root     = get(a:, 1, fnamemodify(a:path, ':h'))
+  let root     = get(a:, 1, fnamemodify(a:path, ':p:h:h'))
   let path     = fnamemodify(a:path, ':p')
   let resolved = resolve(a:path)
   let modified = getftime(resolved)
