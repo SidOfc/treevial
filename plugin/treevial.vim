@@ -696,11 +696,6 @@ function! s:util.to_dict(listlist) abort
   return dict
 endfunction
 
-" The s:util.compare_filename and s:util.filename_words
-" functions have been shamelessly stolen from:
-" https://github.com/Shougo/vimfiler.vim/blob/master/autoload/vimfiler/helper.vim
-"
-" Thanks Shougo!
 function! s:util.compare_filename(entry1, entry2) abort
   let words_1 = s:util.filename_words(a:entry1.filename)
   let words_2 = s:util.filename_words(a:entry2.filename)
