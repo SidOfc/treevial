@@ -22,7 +22,7 @@ set cpo&vim
 let s:settings = {
       \ 'default_mappings': get(g:, 'treevial_default_mappings', v:version >=? 703),
       \ 'mark_symbol': get(g:, 'treevial_mark_symbol', has('multi_byte') ? '• ' : '* '),
-      \ 'sidebar': get(g:, 'treevial_sidebar', 1),
+      \ 'sidebar': get(g:, 'treevial_sidebar', 0),
       \ 'sidebar_width': get(g:, 'treevial_sidebar_width', 25)
       \ }
 " }}}
