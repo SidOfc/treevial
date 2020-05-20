@@ -23,7 +23,7 @@ motivation was born and put to use for a (hopefully) more positive experience.
 ## Why Treevial?
 
 - **Treevial does not leave buffers `&modified` AND `&readonly`**.
-- it has some tests
+- it has some tests.
 - it has one clear view mode: Tree view.
 - it supports "single file/folder" merging like github.
 
@@ -49,13 +49,13 @@ motivation was born and put to use for a (hopefully) more positive experience.
 - [x] Fix resync issue causing failure to unmark parent entries properly
 - [x] Completely isolate tests from each other.
 - [x] Make mappings configurable.
-- [ ] Support "sidebar" style.
+- [x] Support "sidebar" style.
 - [ ] Write more tests
     - [ ] marking / unmarking child directories
     - [ ] marking / unmarking folded paths
     - [ ] moving more than one file / directory at once
     - [ ] deleting more than one file / directory at once
-- [ ] Cache the tree when moving up in `s:`, set `b:` root when moving around
+- [ ] Cache the tree?
     - Will need to take extra care with marks when showing multiple treevial buffers at once
 - [ ] Make the README user-friendly
 
@@ -72,8 +72,7 @@ This loads (n)vim in **N**ocompatible mode, **u**sing provided **dev.vimrc**.
 ## Testing
 
 Treevial uses [junegunn/vader.vim](https://github.com/junegunn/vader.vim) as its testing framework.
-It assumes `vader.vim` is installed in `$HOME/.vim/plugged/vader.vim` currently.
-This may change in the future!
+It assumes `vader.vim` is installed in `$HOME/.vim/plugged/vader.vim`.
 
 There is only a limited amount of tests available since there's only a limited
 amount of things I know how to test (somewhat) properly :sweat_smile:. To run the tests,

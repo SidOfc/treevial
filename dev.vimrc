@@ -12,8 +12,11 @@ set rtp+=.
 " below are things I need to stay sane during development
 set wildignore=.git,.DS_Store
 set splitright splitbelow
-set noswf
 set nowrap
+
+" even while disabling swap files within treevial buffers
+" vim still writes them to disk for reasons I have yet to figure out
+set noswf
 
 if has('nvim')
   set termguicolors
