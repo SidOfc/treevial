@@ -80,10 +80,10 @@ MAPPINGS                                *treevial-keybindings* *treevial-mapping
 <S-CR> `:call treevial#open({'shift': 1})<CR>`                   *treevial-<s-cr>*
                                                                  *treevial-s-cr*
 
-  Like |treevial-<s-cr>| but when closing a directory, it will also
-  recursively close all child directories. This lets you quickly close huge
-  file trees after finding the file you need. This functionality does not work
-  for opening directories recursively.
+  Like |treevial-<cr>| but when closing a directory, it will also recursively
+  close all child directories. This lets you quickly close huge file trees
+  after finding the file you need. This functionality does not work for
+  opening directories recursively.
 
   NOTE: there are many issues with <S-CR> mappings since it depends on your
   terminal emulator / (n)vim setup. (n)vim may or may not be able to see the

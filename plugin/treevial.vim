@@ -21,7 +21,7 @@ set cpo&vim
 " {{{ startup configuration settings
 let s:settings = {
       \ 'default_mappings': get(g:, 'treevial_default_mappings', v:version >=? 703),
-      \ 'mark_symbol': get(g:, 'treevial_mark_symbol', has('multi_byte') ? '• ' : '* '),
+      \ 'mark_symbol': get(g:, 'treevial_mark_symbol', has('multi_byte') ? '•' : '*'),
       \ 'sidebar': get(g:, 'treevial_sidebar', 0),
       \ 'sidebar_width': get(g:, 'treevial_sidebar_width', 25)
       \ }
@@ -34,6 +34,10 @@ function! treevial#open(...) abort
 
   if s:util.is_entry(entry)
     if entry.is_dir
+      if get(options, 'vertical') || get(options, 'horizontal')
+        return
+      endif
+
       call entry.toggle(options)
       call s:view.render()
     else
@@ -266,7 +270,7 @@ function! s:view.render() abort
   let saved_view   = winsaveview()
   let target       = bufname('%')
   let current_lnum = 0
-  let mark_prefix  = b:root.has_marked_entries() ? s:settings.mark_symbol : '  '
+  let mark_prefix  = b:root.has_marked_entries() ? s:settings.mark_symbol . ' ' : '  '
 
   setlocal ma noro
 
@@ -1000,8 +1004,8 @@ function! s:vimenter() abort
 endfunction
 
 if !exists(':Treevial')
-  command Treevial        call s:view.buffer()
-  command TreevialSidebar call s:view.buffer({'sidebar': 1})
+  command Treevial     call s:view.buffer()
+  command SideTreevial call s:view.buffer({'sidebar': 1})
 endif
 
 augroup Treevial
