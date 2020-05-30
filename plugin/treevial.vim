@@ -164,13 +164,21 @@ function! s:view.buffer(...) abort
   let options = get(a:, 1, {})
   let sidebar = get(options, 'sidebar')
 
-  if sidebar && s:view.goto_sidebar()
-    return
-  elseif sidebar && s:view.only_one_window_visible()
-    call setwinvar(winnr(), 'treevial_data', {'command': 'vsplit', 'index': 0})
-    exe 'leftabove' (s:settings.sidebar_width . 'vnew')
-    setlocal winfixwidth
-    setlocal eadirection=hor
+  if sidebar
+    if s:view.goto_sidebar()
+      return
+    else
+      call setwinvar(winnr(), 'treevial_data', {'command': 'vsplit', 'index': 0})
+      exe 'leftabove' (s:settings.sidebar_width . 'vnew')
+      setlocal winfixwidth
+      setlocal eadirection=hor
+    endif
+  elseif s:view.buffer_exists() && !s:test.running()
+    if s:view.is_buffer()
+      return
+    elseif s:view.goto_buffer()
+      return
+    endif
   endif
 
   edit treevial
@@ -209,8 +217,16 @@ function! s:view.activate() abort
 endfunction
 
 function! s:view.goto_sidebar() abort
+  return s:view.goto_first_with_winvar('treevial_sidebar')
+endfunction
+
+function! s:view.goto_buffer() abort
+  return s:view.goto_first_with_winvar('treevial_buffer')
+endfunction
+
+function! s:view.goto_first_with_winvar(winvar) abort
   let sidebar_win  = get(filter(getwininfo(),
-        \ {_, win -> get(win.variables, 'treevial_sidebar') ==# 1}), 0, {})
+        \ {_, win -> get(win.variables, a:winvar) ==# 1}), 0, {})
   let target_winid = bufwinid(get(sidebar_win, 'bufnr', -1))
 
   if target_winid ># -1
@@ -229,6 +245,10 @@ endfunction
 
 function! s:view.is_sidebar() abort
   return getwinvar(winnr(), 'treevial_sidebar', 0)
+endfunction
+
+function! s:view.is_buffer() abort
+  return getwinvar(winnr(), 'treevial_buffer', 0)
 endfunction
 
 function! s:view.buffer_exists() abort
@@ -419,7 +439,8 @@ function! s:entry.open(...) abort dict
       exe command escaped_path
     endif
 
-    call setwinvar(winnr(), 'treevial_data', {'command': command, 'index': v:count})
+    call setwinvar(winnr(), 'treevial_buffer', 0)
+    call setwinvar(winnr(), 'treevial_data',   {'command': command, 'index': v:count})
   endif
 endfunction
 
@@ -1015,6 +1036,10 @@ augroup END
 " }}}
 
 " {{{ test helpers
+function! s:test.running() abort
+  return exists('g:__vader_testing__')
+endfunction
+
 function! s:test.vader_confirmed() abort
   return get(g:, '__treevial_vader_confirm_reply__', '') != ''
 endfunction

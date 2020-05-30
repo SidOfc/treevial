@@ -55,8 +55,6 @@ motivation was born and put to use for a (hopefully) more positive experience.
     - [ ] marking / unmarking folded paths
     - [ ] moving more than one file / directory at once
     - [ ] deleting more than one file / directory at once
-- [ ] Cache the tree?
-    - Will need to take extra care with marks when showing multiple treevial buffers at once
 - [ ] Make the README user-friendly
 
 ## Development

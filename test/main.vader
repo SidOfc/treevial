@@ -1,4 +1,5 @@
 Execute (setting up test environment and helpers):
+  let g:__vader_testing__   = 1
   let g:__vader_repo_root__ = getcwd()
   let g:__vader_test_root__ = __vader_repo_root__ . '/tmp-test'
 
