@@ -32,7 +32,7 @@ motivation was born and put to use for a (hopefully) more positive experience.
 - It has 2 mappings for navigating up and down the tree
   - <kbd>-</kbd>: may be preceded by a count of how many directories to move up
   - <kbd>=</kbd>: move into directory, may be preceded by count on folded paths to move into Nth directory from left
-- It has 2 mappings to handle directory expanding / collapsing
+- It has 2 mappings to handle file opening and directory expanding / collapsing
   - <kbd>enter</kbd>: toggle directory open / closed or if file, open it in a buffer
   - <kbd>shift</kbd>+<kbd>enter</kbd>: same as enter except when closing, closes all nested child directories (**nvim only by default**)
 - It has 3 mappings for performing actions:
@@ -46,16 +46,17 @@ motivation was born and put to use for a (hopefully) more positive experience.
 
 ## Roadmap
 
-- [x] Fix resync issue causing failure to unmark parent entries properly
+- [x] Fix resync issue causing failure to unmark parent entries properly.
 - [x] Completely isolate tests from each other.
 - [x] Make mappings configurable.
 - [x] Support "sidebar" style.
-- [ ] Write more tests
-    - [ ] marking / unmarking child directories
-    - [ ] marking / unmarking folded paths
-    - [ ] moving more than one file / directory at once
-    - [ ] deleting more than one file / directory at once
-- [ ] Make the README user-friendly
+- [ ] document `g:treevial_*` settings.
+- [ ] Write more tests.
+    - [x] marking / unmarking child directories.
+    - [ ] marking / unmarking folded paths.
+    - [x] moving more than one file / directory at once.
+    - [x] deleting more than one file / directory at once.
+- [ ] Make the README user-friendly.
 
 ## Development
 

@@ -3,6 +3,11 @@ Execute (setting up test environment and helpers):
   let g:__vader_repo_root__ = getcwd()
   let g:__vader_test_root__ = __vader_repo_root__ . '/tmp-test'
 
+  function! IsSelected(expected) abort
+    return len(filter(treevial#selection(),
+             \ {_, entry -> substitute(entry.path, g:__vader_test_root__ . '/', '', '') ==? a:expected}))
+  endfunction
+
   function! TestSetup(...) abort
     Log '-+-+-+-+-+-+-+-'
     call mkdir(g:__vader_test_root__, 'p')
@@ -211,6 +216,62 @@ Expect (buffer shows renamed directory):
 
 ================================================================================
 
+Do (rename a file):
+  gg7jm\<Left>\<Left>\<Left>-renamed\<Cr>
+
+Then (target is file):
+  Assert filereadable('example-renamed.sh')
+  Assert !filereadable('example.sh')
+
+Expect (buffer shows renamed file):
+  tmp-test/
+  + expandable/
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
+    broken.ln
+    example-renamed.sh
+    example.ln
+    example.txt
+
+================================================================================
+
+Do (move multiple files and directories):
+  ggj\<Cr>j\<Tab>\<Tab>mdestination\<Cr>ggj\<Cr>
+
+Then (all selected entries have been moved):
+  Assert !filereadable('expandable/1.txt')
+  Assert !isdirectory('expandable/deep')
+  Assert filereadable('destination/1.txt')
+  Assert isdirectory('destination/deep')
+
+Expect (buffer shows moved files):
+  tmp-test/
+  - destination/
+    + deep/
+      1.txt
+    expandable/2.txt
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
+    broken.ln
+    example.ln
+    example.sh
+    example.txt
+
+================================================================================
+
+Do (unmarking a child entry within a marked parent unmarks the parent):
+  ggj\<Tab>k\<Cr>j\<Tab>
+
+Then (parent is unmarked):
+  Assert !IsSelected('expandable/')
+  Assert !IsSelected('expandable/deep/')
+  Assert IsSelected('expandable/1.txt')
+  Assert IsSelected('expandable/2.txt')
+
+================================================================================
+
 Execute (stub confirm answer for delete):
   call TestConfirmChoice(2)
 
@@ -225,6 +286,28 @@ Expect (buffer no longer shows deleted directory):
     folded-dir/directory/
     folded-file/file/example.txt
     folded-sym/directory/
+    broken.ln
+    example.ln
+    example.sh
+    example.txt
+
+================================================================================
+
+Execute (stub confirm answer for delete):
+  call TestConfirmChoice(2)
+
+Do (Select multiple entries and delete them):
+  ggj\<Tab>\<Tab>d
+
+Then (selected entries are deleted):
+  Assert !isdirectory('expandable')
+  Assert !isdirectory('folded-dir/directory')
+
+Expect (buffer no longer shows deleted entries):
+  tmp-test/
+    folded-dir/
+    folded-file/file/example.txt
+    folded-sym/
     broken.ln
     example.ln
     example.sh

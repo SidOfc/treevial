@@ -96,8 +96,12 @@ function! treevial#create() abort
   call s:view.render()
 endfunction
 
+function! treevial#selection()
+  return b:root.list_actionable()
+endfunction
+
 function! treevial#move() abort
-  let selection = b:root.list_actionable()
+  let selection = treevial#selection()
 
   if len(selection) <? 2
     let entry = get(selection, 0, s:util.lnum_to_entry(line('.')))
@@ -111,7 +115,7 @@ function! treevial#move() abort
 endfunction
 
 function! treevial#destroy() abort
-  let selection = b:root.list_actionable()
+  let selection = treevial#selection()
 
   if empty(selection)
     let entry = s:util.lnum_to_entry(line('.'))
