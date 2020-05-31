@@ -19,12 +19,18 @@ set cpo&vim
 " }}}
 
 " {{{ startup configuration settings
-let s:settings = {
-      \ 'default_mappings': get(g:, 'treevial_default_mappings', v:version >=? 703),
-      \ 'mark_symbol': get(g:, 'treevial_mark_symbol', has('multi_byte') ? '•' : '*'),
-      \ 'sidebar': get(g:, 'treevial_sidebar', 0),
-      \ 'sidebar_width': get(g:, 'treevial_sidebar_width', 25)
-      \ }
+let s:settings = {}
+
+function! s:settings.init(name, default) abort dict
+  let self[a:name] = get(g:, 'treevial_' . a:name, a:default)
+endfunction
+
+call s:settings.init('default_mappings', v:version >=? 703)
+call s:settings.init('mark_symbol',      has('multi_byte') ? '•' : '*')
+call s:settings.init('expand_symbol',    '+')
+call s:settings.init('collapse_symbol',  '-')
+call s:settings.init('sidebar',          0)
+call s:settings.init('sidebar_width',    25)
 " }}}
 
 " {{{ main functionality
@@ -294,7 +300,9 @@ function! s:view.render() abort
   let saved_view   = winsaveview()
   let target       = bufname('%')
   let current_lnum = 0
-  let mark_prefix  = b:root.has_marked_entries() ? s:settings.mark_symbol . ' ' : '  '
+  let mark_prefix  = b:root.has_marked_entries()
+        \ ? s:settings.mark_symbol . ' '
+        \ : '  '
 
   setlocal ma noro
 
@@ -309,7 +317,10 @@ function! s:view.render() abort
     let indent        = repeat(' ', indent_mult)
     let fname_len     = len(entry.filename)
     let prefix        = len(entry.fetched_children())
-          \ ? entry.is_open ? '- ' : '+ ' : mark_prefix
+          \ ? entry.is_open
+            \ ? s:settings.collapse_symbol . ' '
+            \ : s:settings.expand_symbol . ' '
+          \ : mark_prefix
     let line          = indent . prefix . entry.name
 
     call append(current_lnum, line)
