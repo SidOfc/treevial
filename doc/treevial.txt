@@ -18,6 +18,7 @@ TABLE OF CONTENTS                               *treevial-contents* *treevial-to
   of the topics listed below:
 
   HONORABLE MENTIONS `.......` |treevial-honorable-mentions|
+  SETTINGS `.................` |treevial-settings|
   MAPPINGS `.................` |treevial-mappings|
   CUSTOM MAPPINGS `..........` |treevial-custom-mappings|
   HIGHLIGHTING `.............` |treevial-highlighting|
@@ -43,6 +44,41 @@ HONORABLE MENTIONS               *treevial-mentions* *treevial-honorable-mention
   > netrw.vim (https://www.vim.org/scripts/script.php?script_id=1075)
     - it served me well for many years as a robust default.
     - for the motivation to write my own vim file manager with a tree view :)
+
+==============================================================================
+SETTINGS                                  *treevial-variables* *treevial-settings*
+
+  Treevial contains the following settings / variables:
+
+  default_mappings `.........` |treevial-setting-default-mappings|
+  mark_symbol `..............` |treevial-setting-mark-symbol|
+  expand_symbol `............` |treevial-setting-expand-symbol|
+  collapse_symbol `..........` |treevial-setting-collapse-symbol|
+
+
+g:treevial_default_mappings                  *treevial-setting-default-mappings*
+
+  If your (n)vim `v:verson >= 703` this defaults to `1`, otherwise `0`.
+  With this setting enabled, Treevial binds all mappings found in
+  |treevial-mappings|. When disabled, nothing will be bound.
+
+
+g:treevial_mark_symbol                            *treevial-setting-mark-symbol*
+
+  Indicator symbol used when marking files. This defaults to `•` when (n)vim
+  `has('multi_byte')`, otherwise defaults to `*`.
+
+
+g:treevial_expand_symbol                        *treevial-setting-expand-symbol*
+
+  Indicator symbol used for closed directories. This defaults to `▸` when
+  (n)vim `has('multi_byte')`, otherwise defaults to `+`.
+
+
+g:treevial_collapse_symbol                    *treevial-setting-collapse-symbol*
+
+  Indicator symbol used for opened directories. This defaults to `▾` when
+  (n)vim `has('multi_byte')`, otherwise defaults to `-`.
 
 ==============================================================================
 MAPPINGS                                *treevial-keybindings* *treevial-mappings*
