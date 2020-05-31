@@ -37,8 +37,12 @@ HONORABLE MENTIONS               *treevial-mentions* *treevial-honorable-mention
 
   > Shougo/vimfiler.vim (https://github.com/Shougo/vimfiler.vim)
     - for the "human sort" functionality which I ported 1-on-1 to Treevial.
-    - for the method to properly redraw and scroll buffers properly when
-      more than one Treevial buffer is shown.
+    - for the method to properly redraw and scroll buffers when more than
+      one Treevial buffer is shown.
+
+  > netrw.vim (https://www.vim.org/scripts/script.php?script_id=1075)
+    - it served me well for many years as a robust default.
+    - for the motivation to write my own vim file manager with a tree view :)
 
 ==============================================================================
 MAPPINGS                                *treevial-keybindings* *treevial-mappings*
@@ -114,7 +118,7 @@ MAPPINGS                                *treevial-keybindings* *treevial-mapping
 
   Pressing <Tab> will mark or unmark the entry below the cursor. After
   marking the current entry, the cursor will be moved down one line. This is
-  convenient for selecting a list of files in descending order.
+  convenient for selecting a list of entries in descending order.
 
   This mapping will no-op when on the root directory (line 1).
 
@@ -123,7 +127,7 @@ MAPPINGS                                *treevial-keybindings* *treevial-mapping
                                                                 *treevial-s-tab*
 
   Like |treevial-<tab>|, but moves up one line instead of down. This one is
-  convenient for selecting a list of files in ascending order.
+  convenient for selecting a list of entries in ascending order.
 
 
 <u> `:call treevial#unmark_all()<CR>`                               *treevial-<u>*
@@ -139,11 +143,11 @@ MAPPINGS                                *treevial-keybindings* *treevial-mapping
 
   This mapping will no-op when on the root directory (line 1).
 
-  When no files / directories are marked, the entry below the cursor will be
+  When there are no marked entries, the entry below the cursor will be
   deleted after user confirmation.
 
-  When one or more files / directories are marked, these files will be deleted
-  after user confirmation.
+  When there are marked entries, these entries will be deleted after user
+  confirmation.
 
 
 <c> `:call treevial#create()<CR>`                                   *treevial-<c>*
@@ -169,23 +173,25 @@ MAPPINGS                                *treevial-keybindings* *treevial-mapping
 
   This mapping will no-op when on the root directory (line 1).
 
-  When no files / directories are marked, the entry below the cursor will be
+  When there are no marked entries, the entry below the cursor will be
   moved to a new location after user confirmation. This functionality can be
-  used to rename files and directories as well.
+  used to rename files and directories as well. Renaming directories does
+  not require a "/" at the end.
 
-  When one or more  files / directories are marked, these will be moved
-  to the destination directory after user confirmation.
+  When there are marked entries, these will be moved to the destination
+  directory after user confirmation.
 
-  Some checks are also performed to ensure that moving one or more files /
-  directories will not cause conflicts. This includes making sure that all
-  the files to move (marked / cursor entry) have a unique filename. If
+  Some checks are also performed to ensure that moving one or more entries
+  will not cause conflicts. This includes making sure that all
+  the entries to move (marked / cursor entry) have a unique filename. If
   this is not the case, the user will be asked if duplicates should
-  be unmarked. This is done automatically.
+  be unmarked. Here you can choose to unmark duplicates or cancel the
+  operation.
 
-  After this is done, the remaining files are checked against the
-  destination if it exists, and if any files in the destination would be
+  After this is done, the remaining entries are checked against the
+  destination if it exists, and if any entries in the destination would be
   overwritten then the user has to confirm this or choose to unmark
-  conflicting files and continue.
+  conflicting entries and continue.
 
   Finally, checks will be performed to ensure that directories are not
   copied "into" themselves or would otherwise overwrite the directory
