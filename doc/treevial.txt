@@ -281,39 +281,36 @@ HIGHLIGHTING                                 *treevial-hl* *treevial-highlightin
   Treevial highlights files and directories based on their type.
   The following types exist:
 
-  TYPE                      HIGHLIGHT GROUP ~
+  TYPE                        HIGHLIGHT GROUP ~
   `============================================================================`
-  directory               `|` TreevialDir
+  directory                 `|` TreevialDir
   `----------------------------------------------------------------------------`
-  file                    `|` TreevialFile
+  file                      `|` TreevialFile
   `----------------------------------------------------------------------------`
-  executable              `|` TreevialExecutable
+  executable                `|` TreevialExecutable
   `----------------------------------------------------------------------------`
-  symlink                 `|` TreevialSymlink
+  symlink                   `|` TreevialSymlink
   `----------------------------------------------------------------------------`
-  broken symlink          `|` TreevialBrokenSymlink
+  broken symlink            `|` TreevialBrokenSymlink
   `============================================================================`
 
   Besides marking files and directories, there is an extra highlight group
-  for the directory open / closed indicator:
+  for the directory open / closed indicator and unmarked entries:
 
-  WHAT                      HIGHLIGHT GROUP ~
+  WHAT                        HIGHLIGHT GROUP ~
   `============================================================================`
-  directory marker        `|` TreevialDirState
+  indicators / markers      `|` TreevialIndicator
   `============================================================================`
 
   When starting a selection, a special mode is activated with the following
   highlighting rules:
 
-  WHAT                      HIGHLIGHT GROUP ~
+  WHAT                        HIGHLIGHT GROUP ~
   `============================================================================`
-  file                    `|` TreevialDefaultMark
+  marked entry              `|` TreevialIndicatorSelected
   `----------------------------------------------------------------------------`
-  marked file / directory `|` TreevialSelectedMark
-  `----------------------------------------------------------------------------`
-  unselected directory    `|`
-  containing some marked  `|`
-  files / directories     `|` TreevialPartialMark
+  unmarked entry containing `|` TreevialIndicatorPartial
+  marked entries            `|`
   `============================================================================`
 
   To get information about any of the above highlight groups, please consult

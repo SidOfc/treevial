@@ -27,8 +27,8 @@ endfunction
 
 call s:settings.init('default_mappings', v:version >=? 703)
 call s:settings.init('mark_symbol',      has('multi_byte') ? '•' : '*')
-call s:settings.init('expand_symbol',    '+')
-call s:settings.init('collapse_symbol',  '-')
+call s:settings.init('expand_symbol',    has('multi_byte') ? '▸' : '+')
+call s:settings.init('collapse_symbol',  has('multi_byte') ? '▾' : '-')
 call s:settings.init('sidebar',          0)
 call s:settings.init('sidebar_width',    25)
 " }}}
@@ -324,6 +324,8 @@ function! s:view.render() abort
     let line          = indent . prefix . entry.name
 
     call append(current_lnum, line)
+    call s:util.each_view({-> matchaddpos(
+          \ 'TreevialIndicator', [[current_lnum + 1, indent_mult + 1]])})
 
     for link in entry.symlinks
       if link >? 0
@@ -378,10 +380,10 @@ function! s:view.render() abort
 
     if entry.is_marked
       call s:util.each_view({-> matchaddpos(
-            \ 'TreevialSelectedMark', [[current_lnum + 1, indent_mult + 1]])})
+            \ 'TreevialIndicatorSelected', [[current_lnum + 1, indent_mult + 1]])})
     elseif entry.has_marked_entries()
       call s:util.each_view({-> matchaddpos(
-            \ 'TreevialPartialMark', [[current_lnum + 1, indent_mult + 1]])})
+            \ 'TreevialIndicatorPartial', [[current_lnum + 1, indent_mult + 1]])})
     endif
   endfor
 
