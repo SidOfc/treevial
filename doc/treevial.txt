@@ -22,6 +22,7 @@ TABLE OF CONTENTS                               *treevial-contents* *treevial-to
   MAPPINGS `.................` |treevial-mappings|
   CUSTOM MAPPINGS `..........` |treevial-custom-mappings|
   HIGHLIGHTING `.............` |treevial-highlighting|
+  SIDEBAR MODE `.............` |treevial-sidebar-mode|
 
 ==============================================================================
 HONORABLE MENTIONS               *treevial-mentions* *treevial-honorable-mentions*
@@ -54,11 +55,13 @@ SETTINGS                                  *treevial-variables* *treevial-setting
   mark_symbol `..............` |treevial-setting-mark-symbol|
   expand_symbol `............` |treevial-setting-expand-symbol|
   collapse_symbol `..........` |treevial-setting-collapse-symbol|
+  sidebar `..................` |treevial-setting-sidebar|
+  sidebar_width `............` |treevial-setting-sidebar-width|
 
 
 g:treevial_default_mappings                  *treevial-setting-default-mappings*
 
-  If your (n)vim `v:verson >= 703` this defaults to `1`, otherwise `0`.
+  If your (n)vim `v:verson >= 703`, this defaults to `1`, otherwise `0`.
   With this setting enabled, Treevial binds all mappings found in
   |treevial-mappings|. When disabled, nothing will be bound.
 
@@ -79,6 +82,17 @@ g:treevial_collapse_symbol                    *treevial-setting-collapse-symbol*
 
   Indicator symbol used for opened directories. This defaults to `▾` when
   (n)vim `has('multi_byte')`, otherwise defaults to `-`.
+
+
+g:treevial_sidebar                                    *treevial-setting-sidebar*
+
+  This setting is disabled by default. To enable it, set the value to `1`.
+  When enabled, Treevial will open itself in |treevial-sidebar-mode|.
+
+g:treevial_sidebar_width                        *treevial-setting-sidebar-width*
+
+  Width of the Treevial buffer when |treevial-setting-sidebar| is enabled.
+  This defaults to `25`.
 
 ==============================================================================
 MAPPINGS                                *treevial-keybindings* *treevial-mappings*
@@ -113,8 +127,10 @@ MAPPINGS                                *treevial-keybindings* *treevial-mapping
   action depending on the entry below the cursor.
 
   When the cursor is on the root directory (line 1), pressing <CR> will no-op.
-  When on a file, pressing <CR> will open that file in the current window.
   When on a directory, pressing <CR> will toggle its state to open or closed.
+  When on a file, pressing <CR> will open that file in the current window.
+  When on a file and |treevial-setting-sidebar| is enabled, the file will open
+  in the "Editing buffer", see |treevial-sidebar-mode| for details.
 
 
 <S-CR> `:call treevial#open({'shift': 1})<CR>`                   *treevial-<s-cr>*
@@ -142,11 +158,51 @@ MAPPINGS                                *treevial-keybindings* *treevial-mapping
   This mapping will no-op when on the root directory (line 1) or when trying
   to use this mapping on a directory.
 
+  When a buffer is opened with <C-V>, opening another file with it will
+  replace the buffer previously opened with <C-V> if it exists, otherwise a
+  new split will be created.
+
+  To add an additional split, prefix <C-V> with a [count], to create this
+  layout:
+
+         Treevial                Buffer 1                 Buffer 2 ~
+  `+------------------------------------------------------------------------+`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `|`                     `|`                        `|`                         `|`
+  `+------------------------------------------------------------------------+`
+
+  First place your cursor on a file in the "Treevial" buffer you would like
+  to open, then press <C-V> or 1<C-V>. This will open "Buffer 1" and focus
+  that buffer. Then go back to the "Treevial" buffer, place your cursor on
+  the second file, and press 2<C-V>. This should create a new split after
+  "Buffer 1".
+
+  To replace the file opened by Treevial in "Buffer 2", use the same 2<C-V>.
+
+  NOTE: this will only work for buffers created by Treevial. Using regular
+  |vsplit| will not work.
+
 
 <C-X> `:call treevial#open({'horizontal': 1})<CR>`                *treevial-<c-x>*
                                                                   *treevial-c-x*
 
   Like |treevial-<c-v>|, but using a horizontal |split|.
+
+  To create multiple horizontal splits, the same rules as <C-V> apply.
 
 
 <Tab> `:call treevial#mark()<CR>`                                 *treevial-<tab>*
@@ -266,9 +322,10 @@ CUSTOM MAPPINGS           *treevial-custom-keybindings* *treevial-custom-mapping
   all mappings that Treevial defines otherwise.
 
   To disable the default mappings, set `g:treevial_default_mappings = 0` in
-  your vimrc. If it is not set, it will default to `1` unless |v:version|
-  is below `703`. This is because the default mappings use <nowait> which
-  is not supported before (n)vim version `703`.
+  your vimrc (|treevial-setting-default-mappings|). If it is not set,
+  it will default to `1` unless |v:version| is below `703`. This is because the
+  default mappings use <nowait> which is not supported before (n)vim
+  version `703`.
 
   After disabling the mappings, you may want to define your own custom
   mappings for Treevial instead. This can be done with a special |autocmd|
@@ -316,6 +373,8 @@ CUSTOM MAPPINGS           *treevial-custom-keybindings* *treevial-custom-mapping
   `>>> snippet END`
 
   This gives you full control over what is mapped and how it is mapped.
+  NOTE: if your (n)vim version is below `703` (check with `:echo v:version`),
+  remove the <nowait> modifier from the mappings as this will not work.
 
 ==============================================================================
 HIGHLIGHTING                                 *treevial-hl* *treevial-highlighting*
@@ -324,36 +383,36 @@ HIGHLIGHTING                                 *treevial-hl* *treevial-highlightin
   The following types exist:
 
   TYPE                        HIGHLIGHT GROUP ~
-  `============================================================================`
+  `==========================================================================`
   directory                 `|` TreevialDir
-  `----------------------------------------------------------------------------`
+  `--------------------------------------------------------------------------`
   file                      `|` TreevialFile
-  `----------------------------------------------------------------------------`
+  `--------------------------------------------------------------------------`
   executable                `|` TreevialExecutable
-  `----------------------------------------------------------------------------`
+  `--------------------------------------------------------------------------`
   symlink                   `|` TreevialSymlink
-  `----------------------------------------------------------------------------`
+  `--------------------------------------------------------------------------`
   broken symlink            `|` TreevialBrokenSymlink
-  `============================================================================`
+  `==========================================================================`
 
   Besides marking files and directories, there is an extra highlight group
   for the directory open / closed indicator and unmarked entries:
 
   WHAT                        HIGHLIGHT GROUP ~
-  `============================================================================`
+  `==========================================================================`
   indicators / markers      `|` TreevialIndicator
-  `============================================================================`
+  `==========================================================================`
 
   When starting a selection, a special mode is activated with the following
   highlighting rules:
 
   WHAT                        HIGHLIGHT GROUP ~
-  `============================================================================`
+  `==========================================================================`
   marked entry              `|` TreevialIndicatorSelected
-  `----------------------------------------------------------------------------`
+  `--------------------------------------------------------------------------`
   unmarked entry containing `|` TreevialIndicatorPartial
   marked entries            `|`
-  `============================================================================`
+  `==========================================================================`
 
   To get information about any of the above highlight groups, please consult
   Vim's |:verbose| command to find out more about applied colors, for example,
@@ -364,5 +423,36 @@ HIGHLIGHTING                                 *treevial-hl* *treevial-highlightin
   Every highlight group mentioned above is defined using the `default`
   (|hi-default|) keyword and may be overridden by the user, this allows full
   customization of any and all colors shown by Treevial.
+
+==============================================================================
+SIDEBAR MODE                                             *treevial-sidebar-mode*
+
+  When |treevial-setting-sidebar| is enabled, Treevial will open in
+  sidebar mode. The width of the sidebar can be defined with
+  |treevial-setting-sidebar-width|.
+
+      Treevial                          Editing buffer ~
+  `+------------------------------------------------------------------------+`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `|               |                                                        |`
+  `+------------------------------------------------------------------------+`
+
+  Pressing <CR> (|treevial-mapping-<cr>|) in this mode acts the same as <C-V>
+  (|treevial-mapping-<c-v>|). This means that files will be opened in the
+  "Editing buffer" rather than replacing "Treevial".
 
 vim:tw=78:sw=2:ft=help:norl:
