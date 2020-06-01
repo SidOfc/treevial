@@ -344,26 +344,20 @@ CUSTOM MAPPINGS           *treevial-custom-keybindings* *treevial-custom-mapping
 
   `<<< snippet`
     function! MappingsForTreevial() abort
-      nnoremap <silent><nowait><buffer> <Cr>    :call treevial#open()<Cr>
+      nnoremap <silent><nowait><buffer> <Cr>    :<C-u>call treevial#open()<Cr>
+      nnoremap <silent><nowait><buffer> <C-v>   :<C-u>call treevial#open({'vertical': 1})<Cr>
+      nnoremap <silent><nowait><buffer> <C-x>   :<C-u>call treevial#open({'horizontal': 1})<Cr>
+      nnoremap <silent><nowait><buffer> -       :<C-u>call treevial#up()<Cr>
+      nnoremap <silent><nowait><buffer> =       :<C-u>call treevial#down()<Cr>
       nnoremap <silent><nowait><buffer> <Tab>   :call treevial#mark()<Cr>
+      nnoremap <silent><nowait><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
+      nnoremap <silent><nowait><buffer> u       :call treevial#unmark_all()<Cr>
       nnoremap <silent><nowait><buffer> d       :call treevial#destroy()<Cr>
       nnoremap <silent><nowait><buffer> m       :call treevial#move()<Cr>
       nnoremap <silent><nowait><buffer> c       :call treevial#create()<Cr>
-      nnoremap <silent><nowait><buffer> u
-          \ :call treevial#unmark_all()<Cr>
-
-      nnoremap <silent><nowait><buffer> <S-Tab>
-          \ :call treevial#mark({'shift': 1})<Cr>
-
-      nnoremap <silent><nowait><buffer> <C-v>
-          \ :call treevial#open({'vertical': 1})<Cr>
-
-      nnoremap <silent><nowait><buffer> <C-x>
-          \ :call treevial#open({'horizontal': 1})<Cr>
 
       if has('nvim')
-        nnoremap <silent><nowait><buffer> <S-Cr>
-            \ :call treevial#open({'shift': 1})<Cr>
+        nnoremap <silent><nowait><buffer> <S-Cr> :<C-u>call treevial#open({'shift': 1})<Cr>
       endif
     endfunction
 
