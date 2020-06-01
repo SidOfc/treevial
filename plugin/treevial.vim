@@ -431,17 +431,17 @@ function! s:entry.open(...) abort dict
   let command        = spl_vert ? 'vsplit' : spl_hor ? 'split' : 'edit'
   let target_buffers = (spl_hor || spl_vert) ? s:util.opened_by_treevial(command) : []
   let target_buffer  = get(filter(copy(target_buffers),
-        \ {_, buf -> buf.variables.treevial_data.index ==# v:count}), 0, {})
+        \ {_, buf -> buf.variables.treevial_data.index ==# v:count1}), 0, {})
   let target_winid   = bufwinid(get(target_buffer, 'bufnr', -1))
 
   if target_winid ># -1
     call win_gotoid(target_winid)
     exe 'edit' escaped_path
   else
-    if v:count
+    if v:count1
       let align_after = get(filter(
             \ copy(target_buffers),
-            \ {_, buf -> buf.variables.treevial_data.index <# v:count}),
+            \ {_, buf -> buf.variables.treevial_data.index <# v:count1}),
             \ -1, {})
       let align_winid = bufwinid(get(align_after, 'bufnr', -1))
 
@@ -457,7 +457,7 @@ function! s:entry.open(...) abort dict
     endif
 
     call setwinvar(winnr(), 'treevial_buffer', 0)
-    call setwinvar(winnr(), 'treevial_data',   {'command': command, 'index': v:count})
+    call setwinvar(winnr(), 'treevial_data',   {'command': command, 'index': v:count1})
   endif
 endfunction
 
