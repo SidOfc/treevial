@@ -286,7 +286,7 @@ function! s:view.mappings() abort
     nnoremap <silent><nowait><buffer> c       :call treevial#create()<Cr>
 
     if s:is_nvim
-      nnoremap <silent><nowait><buffer> <S-Cr> :call treevial#open({'shift': 1})<Cr>
+      nnoremap <silent><nowait><buffer> <S-Cr> :<C-u>call treevial#open({'shift': 1})<Cr>
     endif
   endif
 
