@@ -50,10 +50,10 @@ motivation was born and put to use for a (hopefully) more positive experience.
 - [x] Completely isolate tests from each other.
 - [x] Make mappings configurable.
 - [x] Support "sidebar" style.
-- [ ] document `g:treevial_*` settings.
-- [ ] Write more tests.
+- [x] document `g:treevial_*` settings.
+- [x] Write more tests.
     - [x] marking / unmarking child directories.
-    - [ ] marking / unmarking folded paths.
+    - [x] marking / unmarking folded paths.
     - [x] moving more than one file / directory at once.
     - [x] deleting more than one file / directory at once.
 - [ ] Make the README user-friendly.

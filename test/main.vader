@@ -94,7 +94,7 @@ Execute (buffer is readonly):
 
 Expect (buffer lists contents):
   tmp-test/
-  + expandable/
+  ▸ expandable/
     folded-dir/directory/
     folded-file/file/example.txt
     folded-sym/directory/
@@ -110,7 +110,7 @@ Do (creating a selection using <Tab> shows selection marks):
 
 Expect (buffer shows selection marks):
   tmp-test/
-  + expandable/
+  ▸ expandable/
   • folded-dir/directory/
   • folded-file/file/example.txt
   • folded-sym/directory/
@@ -126,7 +126,7 @@ Do (unmark using <u> hides selection marks):
 
 Expect (buffer no longer shows selection marks):
   tmp-test/
-  + expandable/
+  ▸ expandable/
     folded-dir/directory/
     folded-file/file/example.txt
     folded-sym/directory/
@@ -142,8 +142,8 @@ Do (expand a directory with <enter>):
 
 Expect (buffer shows expanded directory):
   tmp-test/
-  - expandable/
-    + deep/
+  ▾ expandable/
+    ▸ deep/
       1.txt
       2.txt
     folded-dir/directory/
@@ -164,7 +164,7 @@ Then (newly created file exists):
 
 Expect (buffer shows newly created file):
   tmp-test/
-  + expandable/
+  ▸ expandable/
     folded-dir/directory/
     folded-file/file/example.txt
     folded-sym/directory/
@@ -185,7 +185,7 @@ Then (newly created file exists):
 Expect (buffer shows newly created file):
   tmp-test/
     directory/
-  + expandable/
+  ▸ expandable/
     folded-dir/directory/
     folded-file/file/example.txt
     folded-sym/directory/
@@ -205,7 +205,7 @@ Then (target is directory):
 
 Expect (buffer shows renamed directory):
   tmp-test/
-  + expandable-renamed/
+  ▸ expandable-renamed/
     folded-dir/directory/
     folded-file/file/example.txt
     folded-sym/directory/
@@ -225,7 +225,7 @@ Then (target is file):
 
 Expect (buffer shows renamed file):
   tmp-test/
-  + expandable/
+  ▸ expandable/
     folded-dir/directory/
     folded-file/file/example.txt
     folded-sym/directory/
@@ -247,8 +247,8 @@ Then (all selected entries have been moved):
 
 Expect (buffer shows moved files):
   tmp-test/
-  - destination/
-    + deep/
+  ▾ destination/
+    ▸ deep/
       1.txt
     expandable/2.txt
     folded-dir/directory/
@@ -261,7 +261,7 @@ Expect (buffer shows moved files):
 
 ================================================================================
 
-Do (unmarking a child entry within a marked parent unmarks the parent):
+Do (unmarking a child entry deep within the tree unmarks all parents):
   ggj\<Tab>k\<Cr>j\<Tab>
 
 Then (parent is unmarked):
@@ -269,6 +269,18 @@ Then (parent is unmarked):
   Assert !IsSelected('expandable/deep/')
   Assert IsSelected('expandable/1.txt')
   Assert IsSelected('expandable/2.txt')
+
+================================================================================
+
+Execute (stub confirm answer for delete):
+  call TestConfirmChoice(2)
+
+Do (marking and deleting a folded path only deletes the last component):
+  gg3j\<Tab>d
+
+Then (only last component is deleted):
+  Assert !filereadable('folded-file/file/example.txt')
+  Assert isdirectory('folded-file/file/')
 
 ================================================================================
 
@@ -326,7 +338,7 @@ Then (directory is not deleted):
 
 Expect (buffer shows directory):
   tmp-test/
-  + expandable/
+  ▸ expandable/
     folded-dir/directory/
     folded-file/file/example.txt
     folded-sym/directory/
@@ -342,7 +354,7 @@ Do (move into a directory):
 
 Expect (buffer shows new root directory):
   expandable/
-  + deep/
+  ▸ deep/
     1.txt
     2.txt
 
@@ -363,7 +375,7 @@ Do (move up a directory):
 
 Expect (buffer shows original root directory):
   tmp-test/
-  + expandable/
+  ▸ expandable/
     folded-dir/directory/
     folded-file/file/example.txt
     folded-sym/directory/
@@ -379,7 +391,7 @@ Do (move up multiple directories by preceding a count):
 
 Expect (buffer shows original root directory):
   tmp-test/
-  + expandable/
+  ▸ expandable/
     folded-dir/directory/
     folded-file/file/example.txt
     folded-sym/directory/
