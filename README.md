@@ -33,6 +33,7 @@ motivation was born and put to use for a (hopefully) more positive experience.
   - <kbd>-</kbd>: may be preceded by a count of how many directories to move up
   - <kbd>=</kbd>: move into directory, may be preceded by count on folded paths to move into Nth directory from left
   - <kbd>.</kbd>: move to the initial root directory when you first opened (n)vim
+  - <kbd>~</kbd>: move to the home directory
 - It has 4 mappings to handle file opening and directory expanding / collapsing
   - <kbd>enter</kbd>: toggle directory open / closed or if file, open it in a buffer
   - <kbd>shift</kbd>+<kbd>enter</kbd>: same as enter except when closing, closes all nested child directories (**nvim only by default**)

@@ -118,6 +118,8 @@ MAPPINGS                                *treevial-keybindings* *treevial-mapping
   DIRECTORY TRAVERSAL
   - `........................` |treevial-up|
   = `........................` |treevial-down|
+  . `........................` |treevial-initial-root|
+  ~ `........................` |treevial-home|
 
 
 <CR> `:call treevial#open()<CR>`                                   *treevial-<cr>*
@@ -313,6 +315,16 @@ MAPPINGS                                *treevial-keybindings* *treevial-mapping
   if the supplied [count] overshoots it will go to the last available
   directory. This means that running `3=` on hello/nested/world.txt
   will also move to the "hello/nested/" directory.
+
+. `:call treevial#initial_root()<CR>`                      *treevial-initial-root*
+                                                                    *treevial-.*
+
+Jump to the original working directory in which you opened (n)vim.
+
+~ `:call treevial#home<Cr>`                                        *treevial-home*
+                                                                    *treevial-~*
+
+Jump to the current `$HOME` directory.
 
 ==============================================================================
 CUSTOM MAPPINGS           *treevial-custom-keybindings* *treevial-custom-mappings*

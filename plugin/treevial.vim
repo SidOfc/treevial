@@ -171,6 +171,10 @@ endfunction
 function! treevial#initial_root()
   call s:view.move_to(s:view.initial_cwd)
 endfunction
+
+function! treevial#home()
+  call s:view.move_to($HOME)
+endfunction
 " }}}
 
 " {{{ s:view helpers
@@ -284,6 +288,7 @@ function! s:view.mappings() abort
     nnoremap <silent><nowait><buffer> -       :<C-u>call treevial#up()<Cr>
     nnoremap <silent><nowait><buffer> =       :<C-u>call treevial#down()<Cr>
     nnoremap <silent><nowait><buffer> .       :<C-u>call treevial#initial_root()<Cr>
+    nnoremap <silent><nowait><buffer> ~       :<C-u>call treevial#home()<Cr>
     nnoremap <silent><nowait><buffer> <Tab>   :call treevial#mark()<Cr>
     nnoremap <silent><nowait><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
     nnoremap <silent><nowait><buffer> u       :call treevial#unmark_all()<Cr>

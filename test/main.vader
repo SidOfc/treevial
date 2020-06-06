@@ -418,6 +418,14 @@ Expect (buffer shows original root directory):
 
 ================================================================================
 
+Do (move to home directory using '~'):
+  ~
+
+Then (root dir equals home directory name):
+  AssertEqual fnamemodify($HOME, ':t'), getline(1)[:-2]
+
+================================================================================
+
 Do (move into a folded directory):
   ggjj=
 
