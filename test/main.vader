@@ -402,6 +402,22 @@ Expect (buffer shows original root directory):
 
 ================================================================================
 
+Do (moving away from original root and navigating back using '.'):
+  ggj\<Cr>j=.
+
+Expect (buffer shows original root directory):
+  tmp-test/
+  ▸ expandable/
+    folded-dir/directory/
+    folded-file/file/example.txt
+    folded-sym/directory/
+    broken.ln
+    example.ln
+    example.sh
+    example.txt
+
+================================================================================
+
 Do (move into a folded directory):
   ggjj=
 

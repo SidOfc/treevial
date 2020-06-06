@@ -146,7 +146,7 @@ function! treevial#destroy() abort
   endif
 endfunction
 
-function! treevial#up(...) abort
+function! treevial#up() abort
   let dest = fnamemodify(
         \ s:util.strip_trailing_slash(b:root.path),
         \ repeat(':h', v:count1))
@@ -166,6 +166,10 @@ function! treevial#down() abort
       call s:view.move_to(dest)
     endif
   endif
+endfunction
+
+function! treevial#initial_root()
+  call s:view.move_to(s:view.initial_cwd)
 endfunction
 " }}}
 
@@ -197,8 +201,9 @@ function! s:view.buffer(...) abort
   call setwinvar(winnr(), 'treevial_buffer',  1)
   call setwinvar(winnr(), 'treevial_sidebar', sidebar)
 
-  let b:entries = []
-  let b:root    = s:entry.new(get(options, 'cwd', getcwd()))
+  let b:entries          = []
+  let b:root             = s:entry.new(get(options, 'cwd', getcwd()))
+  let s:view.initial_cwd = get(s:view, 'initial_cwd', getcwd())
 
   setlocal noru nonu nornu noma nomod ro noswf nospell nowrap
   setlocal bufhidden=hide buftype=nowrite buftype=nofile
@@ -278,6 +283,7 @@ function! s:view.mappings() abort
     nnoremap <silent><nowait><buffer> <C-x>   :<C-u>call treevial#open({'horizontal': 1})<Cr>
     nnoremap <silent><nowait><buffer> -       :<C-u>call treevial#up()<Cr>
     nnoremap <silent><nowait><buffer> =       :<C-u>call treevial#down()<Cr>
+    nnoremap <silent><nowait><buffer> .       :<C-u>call treevial#initial_root()<Cr>
     nnoremap <silent><nowait><buffer> <Tab>   :call treevial#mark()<Cr>
     nnoremap <silent><nowait><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
     nnoremap <silent><nowait><buffer> u       :call treevial#unmark_all()<Cr>

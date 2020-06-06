@@ -29,12 +29,15 @@ motivation was born and put to use for a (hopefully) more positive experience.
 
 ## Core functionality
 
-- It has 2 mappings for navigating up and down the tree
+- It has 3 mappings for navigating up and down the tree
   - <kbd>-</kbd>: may be preceded by a count of how many directories to move up
   - <kbd>=</kbd>: move into directory, may be preceded by count on folded paths to move into Nth directory from left
-- It has 2 mappings to handle file opening and directory expanding / collapsing
+  - <kbd>.</kbd>: move to the initial root directory when you first opened (n)vim
+- It has 4 mappings to handle file opening and directory expanding / collapsing
   - <kbd>enter</kbd>: toggle directory open / closed or if file, open it in a buffer
   - <kbd>shift</kbd>+<kbd>enter</kbd>: same as enter except when closing, closes all nested child directories (**nvim only by default**)
+  - <kbd>ctrl</kbd>+<kbd>v</kbd>: open file in vertical split, no-op on directories
+  - <kbd>ctrl</kbd>+<kbd>x</kbd>: open file in horizontal split, no-op on directories
 - It has 3 mappings for performing actions:
   - <kbd>m</kbd>: Move below cursor or selection
   - <kbd>d</kbd>: Delete below cursor or selection
