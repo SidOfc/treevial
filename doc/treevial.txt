@@ -324,7 +324,7 @@ Jump to the original working directory in which you opened (n)vim.
 ~ `:call treevial#home<Cr>`                                        *treevial-home*
                                                                     *treevial-~*
 
-Jump to the current `$HOME` directory.
+Jump to the `$HOME` directory.
 
 ==============================================================================
 CUSTOM MAPPINGS           *treevial-custom-keybindings* *treevial-custom-mappings*
