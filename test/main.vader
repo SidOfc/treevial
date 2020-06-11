@@ -77,7 +77,7 @@ After:
 
 ================================================================================
 
-Execute (buffer has name "treevial"):
+Execute (buffer name is equal to path relative to parent working directory):
   Assert bufexists(fnamemodify(g:__vader_test_root__, ':t') . '/')
 
 ================================================================================
