@@ -182,8 +182,6 @@ function! s:view.buffer(...) abort
   edit treevial
   setfiletype treevial
 
-  call setwinvar(winnr(), 'treevial_buffer',  1)
-
   let b:entries          = []
   let b:root             = s:entry.new(get(options, 'cwd', getcwd()))
   let s:view.initial_cwd = get(s:view, 'initial_cwd', getcwd())
@@ -231,20 +229,6 @@ function! s:view.move_to(dest) abort
   let b:root = s:entry.new(a:dest)
   call b:root.expand()
   call s:view.render()
-endfunction
-
-function! s:view.is_buffer() abort
-  return getwinvar(winnr(), 'treevial_buffer', 0)
-endfunction
-
-function! s:view.buffer_exists() abort
-  return len(filter(
-        \ getwininfo(),
-        \ {_, win -> has_key(win.variables, 'treevial_buffer')})) ># 0
-endfunction
-
-function! s:view.only_one_window_visible() abort
-  return len(get(get(gettabinfo(tabpagenr()), 0, {}), 'windows', [])) ==# 1
 endfunction
 
 function! s:view.mappings() abort
@@ -430,8 +414,7 @@ function! s:entry.open(...) abort dict
 
     exe command escaped_path
 
-    call setwinvar(winnr(), 'treevial_buffer', 0)
-    call setwinvar(winnr(), 'treevial_data',   {'command': command, 'index': v:count1})
+    call setwinvar(winnr(), 'treevial_data', {'command': command, 'index': v:count1})
   endif
 endfunction
 
@@ -1026,10 +1009,6 @@ augroup END
 " }}}
 
 " {{{ test helpers
-function! s:test.running() abort
-  return exists('g:__vader_testing__')
-endfunction
-
 function! s:test.vader_confirmed() abort
   return get(g:, '__treevial_vader_confirm_reply__', '') != ''
 endfunction
