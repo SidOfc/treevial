@@ -71,7 +71,7 @@ function! treevial#mark(...) abort
 endfunction
 
 function! treevial#unmark_all() abort
-  for [entry, _] in b:entries
+  for [entry, _] in b:root.list()
     call entry.mark(0)
     call entry.mark_children()
   endfor
@@ -177,14 +177,19 @@ endfunction
 
 " {{{ s:view helpers
 function! s:view.buffer(...) abort
-  let options = get(a:, 1, {})
+  let options            = get(a:, 1, {})
+  let root               = s:entry.new(get(options, 'cwd', getcwd()))
+  let s:view.initial_cwd = get(s:view, 'initial_cwd', getcwd())
+  let bufname            = substitute(
+        \ root.path,
+        \ fnamemodify(s:view.initial_cwd, ':h') . '/',
+        \ '',
+        \ '')
 
-  edit treevial
+  exe 'edit' bufname
   setfiletype treevial
 
-  let b:entries          = []
-  let b:root             = s:entry.new(get(options, 'cwd', getcwd()))
-  let s:view.initial_cwd = get(s:view, 'initial_cwd', getcwd())
+  let b:root = root
 
   setlocal noru nonu nornu noma nomod ro noswf nospell nowrap
   setlocal bufhidden=hide buftype=nowrite buftype=nofile
@@ -258,7 +263,6 @@ function! s:view.mappings() abort
 endfunction
 
 function! s:view.render() abort
-  let b:entries    = b:root.list()
   let saved_view   = winsaveview()
   let target       = bufname('%')
   let current_lnum = 0
@@ -272,7 +276,7 @@ function! s:view.render() abort
   call clearmatches()
   call append(current_lnum, b:root.name)
 
-  for [entry, depth] in b:entries
+  for [entry, depth] in b:root.list()
     let check_links   = 0
     let current_lnum += 1
     let indent_mult   = depth * 2
@@ -608,7 +612,7 @@ function! s:util.strip_trailing_slash(path)
 endfunction
 
 function! s:util.lnum_to_entry(lnum) abort
-  return a:lnum >? 1 ? get(get(b:entries, a:lnum - 2, []), 0) : 0
+  return a:lnum >? 1 ? get(get(b:root.list(), a:lnum - 2, []), 0) : 0
 endfunction
 
 function! s:util.each_view(func) abort
@@ -994,12 +998,18 @@ function! s:vimenter() abort
   if exists('#NERDTreeHijackNetrw') | exe 'au! NERDTreeHijackNetrw *' | endif
 
   if isdirectory(root_target) && no_lnum && !&insertmode && &modifiable
-    call s:view.buffer({'cwd': root_target})
+    exe 'Treevial' root_target
   endif
 endfunction
 
+function! s:view.command_handler(...)
+  let cwd = get(a:, 1, getcwd())
+
+  call s:view.buffer({'cwd': cwd})
+endfunction
+
 if !exists(':Treevial')
-  command Treevial call s:view.buffer()
+  command -complete=dir -nargs=? Treevial call s:view.command_handler(<f-args>)
 endif
 
 augroup Treevial
