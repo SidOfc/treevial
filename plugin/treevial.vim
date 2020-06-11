@@ -29,8 +29,6 @@ call s:settings.init('default_mappings', v:version >=? 703)
 call s:settings.init('mark_symbol',      has('multi_byte') ? '•' : '*')
 call s:settings.init('expand_symbol',    has('multi_byte') ? '▸' : '+')
 call s:settings.init('collapse_symbol',  has('multi_byte') ? '▾' : '-')
-call s:settings.init('sidebar',          0)
-call s:settings.init('sidebar_width',    25)
 " }}}
 
 " {{{ main functionality
@@ -180,30 +178,11 @@ endfunction
 " {{{ s:view helpers
 function! s:view.buffer(...) abort
   let options = get(a:, 1, {})
-  let sidebar = get(options, 'sidebar')
-
-  if sidebar
-    if s:view.goto_sidebar()
-      return
-    else
-      call setwinvar(winnr(), 'treevial_data', {'command': 'vsplit', 'index': 0})
-      exe 'leftabove' (s:settings.sidebar_width . 'vnew')
-      setlocal winfixwidth
-      setlocal eadirection=hor
-    endif
-  elseif s:view.buffer_exists() && !s:test.running()
-    if s:view.is_buffer()
-      return
-    elseif s:view.goto_buffer()
-      return
-    endif
-  endif
 
   edit treevial
   setfiletype treevial
 
   call setwinvar(winnr(), 'treevial_buffer',  1)
-  call setwinvar(winnr(), 'treevial_sidebar', sidebar)
 
   let b:entries          = []
   let b:root             = s:entry.new(get(options, 'cwd', getcwd()))
@@ -235,18 +214,10 @@ function! s:view.activate() abort
   endif
 endfunction
 
-function! s:view.goto_sidebar() abort
-  return s:view.goto_first_with_winvar('treevial_sidebar')
-endfunction
-
-function! s:view.goto_buffer() abort
-  return s:view.goto_first_with_winvar('treevial_buffer')
-endfunction
-
 function! s:view.goto_first_with_winvar(winvar) abort
-  let sidebar_win  = get(filter(getwininfo(),
+  let win_with_var = get(filter(getwininfo(),
         \ {_, win -> get(win.variables, a:winvar) ==# 1}), 0, {})
-  let target_winid = bufwinid(get(sidebar_win, 'bufnr', -1))
+  let target_winid = bufwinid(get(win_with_var, 'bufnr', -1))
 
   if target_winid ># -1
     call win_gotoid(target_winid)
@@ -260,10 +231,6 @@ function! s:view.move_to(dest) abort
   let b:root = s:entry.new(a:dest)
   call b:root.expand()
   call s:view.render()
-endfunction
-
-function! s:view.is_sidebar() abort
-  return getwinvar(winnr(), 'treevial_sidebar', 0)
 endfunction
 
 function! s:view.is_buffer() abort
@@ -437,7 +404,7 @@ endfunction
 function! s:entry.open(...) abort dict
   let options        = get(a:, 1, {})
   let spl_hor        = get(options, 'horizontal')
-  let spl_vert       = get(options, 'vertical', (!spl_hor && s:view.is_sidebar()))
+  let spl_vert       = get(options, 'vertical')
   let escaped_path   = fnameescape(self.path)
   let command        = spl_vert ? 'vsplit' : spl_hor ? 'split' : 'edit'
   let target_buffers = (spl_hor || spl_vert) ? s:util.opened_by_treevial(command) : []
@@ -461,11 +428,7 @@ function! s:entry.open(...) abort dict
       endif
     endif
 
-    if spl_vert && s:view.only_one_window_visible() && s:view.is_sidebar()
-      exe (string(&columns - s:settings.sidebar_width) . command) escaped_path
-    else
-      exe command escaped_path
-    endif
+    exe command escaped_path
 
     call setwinvar(winnr(), 'treevial_buffer', 0)
     call setwinvar(winnr(), 'treevial_data',   {'command': command, 'index': v:count1})
@@ -1048,13 +1011,12 @@ function! s:vimenter() abort
   if exists('#NERDTreeHijackNetrw') | exe 'au! NERDTreeHijackNetrw *' | endif
 
   if isdirectory(root_target) && no_lnum && !&insertmode && &modifiable
-    call s:view.buffer({'cwd': root_target, 'sidebar': s:settings.sidebar})
+    call s:view.buffer({'cwd': root_target})
   endif
 endfunction
 
 if !exists(':Treevial')
-  command Treevial     call s:view.buffer()
-  command SideTreevial call s:view.buffer({'sidebar': 1})
+  command Treevial call s:view.buffer()
 endif
 
 augroup Treevial

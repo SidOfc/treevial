@@ -9,9 +9,6 @@ syntax on
 " source current directory
 set rtp+=.
 
-" Treevial settings
-" let g:treevial_sidebar = 1
-
 " below are things I need to stay sane during development
 set wildignore=.git,.DS_Store
 set splitright splitbelow

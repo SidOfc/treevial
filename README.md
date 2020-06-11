@@ -53,7 +53,6 @@ motivation was born and put to use for a (hopefully) more positive experience.
 - [x] Fix resync issue causing failure to unmark parent entries properly.
 - [x] Completely isolate tests from each other.
 - [x] Make mappings configurable.
-- [x] Support "sidebar" style.
 - [x] document `g:treevial_*` settings.
 - [x] Write more tests.
     - [x] marking / unmarking child directories.

@@ -22,7 +22,6 @@ TABLE OF CONTENTS                               *treevial-contents* *treevial-to
   MAPPINGS `.................` |treevial-mappings|
   CUSTOM MAPPINGS `..........` |treevial-custom-mappings|
   HIGHLIGHTING `.............` |treevial-highlighting|
-  SIDEBAR MODE `.............` |treevial-sidebar-mode|
 
 ==============================================================================
 HONORABLE MENTIONS               *treevial-mentions* *treevial-honorable-mentions*
@@ -55,8 +54,6 @@ SETTINGS                                  *treevial-variables* *treevial-setting
   mark_symbol `..............` |treevial-setting-mark-symbol|
   expand_symbol `............` |treevial-setting-expand-symbol|
   collapse_symbol `..........` |treevial-setting-collapse-symbol|
-  sidebar `..................` |treevial-setting-sidebar|
-  sidebar_width `............` |treevial-setting-sidebar-width|
 
 
 g:treevial_default_mappings                  *treevial-setting-default-mappings*
@@ -83,16 +80,6 @@ g:treevial_collapse_symbol                    *treevial-setting-collapse-symbol*
   Indicator symbol used for opened directories. This defaults to `▾` when
   (n)vim `has('multi_byte')`, otherwise defaults to `-`.
 
-
-g:treevial_sidebar                                    *treevial-setting-sidebar*
-
-  This setting is disabled by default. To enable it, set the value to `1`.
-  When enabled, Treevial will open itself in |treevial-sidebar-mode|.
-
-g:treevial_sidebar_width                        *treevial-setting-sidebar-width*
-
-  Width of the Treevial buffer when |treevial-setting-sidebar| is enabled.
-  This defaults to `25`.
 
 ==============================================================================
 MAPPINGS                                *treevial-keybindings* *treevial-mappings*
@@ -131,8 +118,6 @@ MAPPINGS                                *treevial-keybindings* *treevial-mapping
   When the cursor is on the root directory (line 1), pressing <CR> will no-op.
   When on a directory, pressing <CR> will toggle its state to open or closed.
   When on a file, pressing <CR> will open that file in the current window.
-  When on a file and |treevial-setting-sidebar| is enabled, the file will open
-  in the "Editing buffer", see |treevial-sidebar-mode| for details.
 
 
 <S-CR> `:call treevial#open({'shift': 1})<CR>`                   *treevial-<s-cr>*
@@ -429,36 +414,5 @@ HIGHLIGHTING                                 *treevial-hl* *treevial-highlightin
   Every highlight group mentioned above is defined using the `default`
   (|hi-default|) keyword and may be overridden by the user, this allows full
   customization of any and all colors shown by Treevial.
-
-==============================================================================
-SIDEBAR MODE                                             *treevial-sidebar-mode*
-
-  When |treevial-setting-sidebar| is enabled, Treevial will open in
-  sidebar mode. The width of the sidebar can be defined with
-  |treevial-setting-sidebar-width|.
-
-      Treevial                          Editing buffer ~
-  `+------------------------------------------------------------------------+`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `|               |                                                        |`
-  `+------------------------------------------------------------------------+`
-
-  Pressing <CR> (|treevial-mapping-<cr>|) in this mode acts the same as <C-V>
-  (|treevial-mapping-<c-v>|). This means that files will be opened in the
-  "Editing buffer" rather than replacing "Treevial".
 
 vim:tw=78:sw=2:ft=help:norl:
