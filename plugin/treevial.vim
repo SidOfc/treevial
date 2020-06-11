@@ -989,7 +989,7 @@ function! s:io.delete_all(entries) abort
 endfunction
 " }}}
 
-" {{{ activation on startup + create Tree[vial][!] command
+" {{{ activation on startup + create Tr[eevial] command
 function! s:vimenter() abort
   let root_target = get(argv(), 0, getcwd())
   let no_lnum     = line2byte('$') ==# -1
@@ -1002,14 +1002,14 @@ function! s:vimenter() abort
   endif
 endfunction
 
-function! s:view.command_handler(...)
+function! s:command_handler(...)
   let cwd = get(a:, 1, getcwd())
 
   call s:view.buffer({'cwd': cwd})
 endfunction
 
 if !exists(':Treevial')
-  command -complete=dir -nargs=? Treevial call s:view.command_handler(<f-args>)
+  command -complete=dir -nargs=? Treevial call s:command_handler(<f-args>)
 endif
 
 augroup Treevial
