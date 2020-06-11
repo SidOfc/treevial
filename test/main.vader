@@ -78,17 +78,17 @@ After:
 ================================================================================
 
 Execute (buffer has name "treevial"):
-  Assert bufexists('treevial')
+  Assert bufexists(fnamemodify(g:__vader_test_root__, ':t') . '/')
 
 ================================================================================
 
 Execute (buffer has filetype "treevial"):
-  AssertEqual 'treevial', getbufvar('treevial', '&filetype')
+  AssertEqual 'treevial', &filetype
 
 ================================================================================
 
 Execute (buffer is readonly):
-  AssertEqual 1, getbufvar('treevial', '&readonly')
+  AssertEqual 1, &readonly
 
 ================================================================================
 
