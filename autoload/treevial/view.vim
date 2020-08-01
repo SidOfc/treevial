@@ -1,14 +1,3 @@
-let s:settings = {}
-
-function! s:settings.init(name, default) abort dict
-  let self[a:name] = get(g:, 'treevial_' . a:name, a:default)
-endfunction
-
-call s:settings.init('default_mappings', v:version >=? 703)
-call s:settings.init('mark_symbol',      has('multi_byte') ? '•' : '*')
-call s:settings.init('expand_symbol',    has('multi_byte') ? '▸' : '+')
-call s:settings.init('collapse_symbol',  has('multi_byte') ? '▾' : '-')
-
 function! treevial#view#init_cwd() abort
   return get(s:, 'init_cwd', getcwd())
 endfunction
@@ -74,7 +63,7 @@ function! treevial#view#move_to(dest) abort
 endfunction
 
 function! treevial#view#mappings() abort
-  if s:settings.default_mappings
+  if treevial#settings#get('default_mappings')
     nnoremap <silent><nowait><buffer> <Cr>    :<C-u>call treevial#open()<Cr>
     nnoremap <silent><nowait><buffer> <C-v>   :<C-u>call treevial#open({'vertical': 1})<Cr>
     nnoremap <silent><nowait><buffer> <C-x>   :<C-u>call treevial#open({'horizontal': 1})<Cr>
@@ -104,7 +93,7 @@ function! treevial#view#render() abort
   let target       = bufname('%')
   let current_lnum = 0
   let mark_prefix  = b:root.has_marked_entries()
-        \ ? s:settings.mark_symbol . ' '
+        \ ? treevial#settings#get('mark_symbol') . ' '
         \ : '  '
 
   setlocal ma noro
@@ -121,8 +110,8 @@ function! treevial#view#render() abort
     let fname_len     = len(entry.filename)
     let prefix        = len(entry.fetched_children())
           \ ? entry.is_open
-            \ ? s:settings.collapse_symbol . ' '
-            \ : s:settings.expand_symbol . ' '
+            \ ? treevial#settings#get('collapse_symbol') . ' '
+            \ : treevial#settings#get('expand_symbol') . ' '
           \ : mark_prefix
     let line          = indent . prefix . entry.name
 

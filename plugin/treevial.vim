@@ -8,6 +8,11 @@ let g:loaded_netrwPlugin = 1
 let g:loaded_treevial    = 1
 let s:save_cpo           = &cpo
 set cpo&vim
+
+call treevial#settings#init('default_mappings', v:version >=? 703)
+call treevial#settings#init('mark_symbol',      has('multi_byte') ? '•' : '*')
+call treevial#settings#init('expand_symbol',    has('multi_byte') ? '▸' : '+')
+call treevial#settings#init('collapse_symbol',  has('multi_byte') ? '▾' : '-')
 " }}}
 
 " {{{ main functionality
