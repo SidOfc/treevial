@@ -1,3 +1,6 @@
+let s:save_cpo = &cpo
+set cpo&vim
+
 let s:entry   = {}
 let s:fn_type = type(function('getline'))
 
@@ -237,3 +240,5 @@ function! s:entry.has_marked_entries() abort dict
   return 0
 endfunction
 
+let &cpo = s:save_cpo
+unlet s:save_cpo

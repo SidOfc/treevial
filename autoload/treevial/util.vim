@@ -1,3 +1,6 @@
+let s:save_cpo = &cpo
+set cpo&vim
+
 function! treevial#util#opened_by_treevial(...) abort
   let command = get(a:, 1, 'edit')
   return filter(getwininfo(),
@@ -168,3 +171,6 @@ function! s:test.vader_confirm_answer() abort
   unlet g:__treevial_vader_confirm_reply__
   return answer
 endfunction
+
+let &cpo = s:save_cpo
+unlet s:save_cpo

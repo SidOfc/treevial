@@ -1,3 +1,6 @@
+let s:save_cpo = &cpo
+set cpo&vim
+
 function! treevial#view#init_cwd() abort
   return get(s:, 'init_cwd', getcwd())
 endfunction
@@ -186,3 +189,5 @@ function! treevial#view#render() abort
   mode
 endfunction
 
+let &cpo = s:save_cpo
+unlet s:save_cpo

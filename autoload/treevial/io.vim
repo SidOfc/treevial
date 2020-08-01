@@ -1,3 +1,6 @@
+let s:save_cpo = &cpo
+set cpo&vim
+
 function! treevial#io#handle_move_multiple_entries(entries) abort
   let entries              = copy(a:entries)
   let entry_filenames      = uniq(sort(map(copy(entries), 'v:val.filename')))
@@ -225,3 +228,5 @@ function! treevial#io#delete_all(entries) abort
   endif
 endfunction
 
+let &cpo = s:save_cpo
+unlet s:save_cpo
