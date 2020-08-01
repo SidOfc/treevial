@@ -6,27 +6,8 @@ endif
 let g:loaded_netrw       = 1
 let g:loaded_netrwPlugin = 1
 let g:loaded_treevial    = 1
-let s:io                 = {}
-let s:view               = {}
-let s:entry              = {}
-let s:is_nvim            = has('nvim')
-let s:is_vim             = !s:is_nvim
-let s:fn_type            = type(function('getline'))
 let s:save_cpo           = &cpo
 set cpo&vim
-" }}}
-
-" {{{ startup configuration settings
-let s:settings = {}
-
-function! s:settings.init(name, default) abort dict
-  let self[a:name] = get(g:, 'treevial_' . a:name, a:default)
-endfunction
-
-call s:settings.init('default_mappings', v:version >=? 703)
-call s:settings.init('mark_symbol',      has('multi_byte') ? '•' : '*')
-call s:settings.init('expand_symbol',    has('multi_byte') ? '▸' : '+')
-call s:settings.init('collapse_symbol',  has('multi_byte') ? '▾' : '-')
 " }}}
 
 " {{{ main functionality
@@ -41,7 +22,7 @@ function! treevial#open(...) abort
       endif
 
       call entry.toggle(options)
-      call s:view.render()
+      call treevial#view#render()
     else
       call entry.open(options)
       call clearmatches()
@@ -64,7 +45,7 @@ function! treevial#mark(...) abort
     endif
 
     call cursor(lnum + (shift ? -1 : 1), 1)
-    call s:view.render()
+    call treevial#view#render()
   endif
 endfunction
 
@@ -74,7 +55,7 @@ function! treevial#unmark_all() abort
     call entry.mark_children()
   endfor
 
-  call s:view.render()
+  call treevial#view#render()
 endfunction
 
 function! treevial#create() abort
@@ -89,13 +70,13 @@ function! treevial#create() abort
   endif
 
   if dest_is_dir
-    if !s:io.mkdirp(destination) | return | endif
+    if !treevial#io#mkdirp(destination) | return | endif
   else
-    if !s:io.mkfile(destination) | return | endif
+    if !treevial#io#mkfile(destination) | return | endif
   endif
 
   call b:root.sync()
-  call s:view.render()
+  call treevial#view#render()
 endfunction
 
 function! treevial#selection()
@@ -109,10 +90,10 @@ function! treevial#move() abort
     let entry = get(selection, 0, treevial#util#lnum_to_entry(line('.')))
 
     if treevial#util#is_entry(entry)
-      call s:io.handle_move_single_entry(entry)
+      call treevial#io#handle_move_single_entry(entry)
     endif
   else
-    return s:io.handle_move_multiple_entries(selection)
+    return treevial#io#handle_move_multiple_entries(selection)
   endif
 endfunction
 
@@ -135,9 +116,9 @@ function! treevial#destroy() abort
           \ })
 
     if choice ==# 2
-      call s:io.delete_all(selection)
+      call treevial#io#delete_all(selection)
       call b:root.sync()
-      call s:view.render()
+      call treevial#view#render()
     endif
   endif
 endfunction
@@ -147,7 +128,7 @@ function! treevial#up() abort
         \ treevial#util#strip_trailing_slash(b:root.path),
         \ repeat(':h', v:count1))
 
-  call s:view.move_to(dest)
+  call treevial#view#move_to(dest)
 endfunction
 
 function! treevial#down() abort
@@ -159,670 +140,17 @@ function! treevial#down() abort
     let dest       = base . join(parts[:max_offset][:(v:count1 - 1)], '/')
 
     if max_offset >? -1
-      call s:view.move_to(dest)
+      call treevial#view#move_to(dest)
     endif
   endif
 endfunction
 
 function! treevial#initial_root()
-  call s:view.move_to(s:view.initial_cwd)
+  call treevial#view#move_to(treevial#view#init_cwd())
 endfunction
 
 function! treevial#home()
-  call s:view.move_to($HOME)
-endfunction
-" }}}
-
-" {{{ s:view helpers
-function! s:view.buffer(...) abort
-  let options            = get(a:, 1, {})
-  let root               = s:entry.new(get(options, 'cwd', getcwd()))
-  let s:view.initial_cwd = get(s:view, 'initial_cwd', getcwd())
-  let bufname            = substitute(
-        \ root.path,
-        \ fnamemodify(s:view.initial_cwd, ':h') . '/',
-        \ '',
-        \ '')
-
-  exe 'edit' bufname
-  setfiletype treevial
-
-  let b:root = root
-
-  setlocal noru nonu nornu noma nomod ro noswf nospell nowrap
-  setlocal bufhidden=hide buftype=nowrite buftype=nofile
-
-  augroup Treevial
-    autocmd!
-    autocmd BufEnter,FocusGained <buffer> call s:view.activate()
-    autocmd BufLeave,FocusLost   <buffer> call s:view.deactivate()
-  augroup END
-
-  call b:root.expand()
-  call s:view.mappings()
-  call s:view.render()
-endfunction
-
-function! s:view.deactivate() abort
-  let b:active = 0
-endfunction
-
-function! s:view.activate() abort
-  if get(b:, 'active', 1) ==# 0
-    call b:root.sync()
-    call s:view.render()
-    let b:active = 1
-  endif
-endfunction
-
-function! s:view.goto_first_with_winvar(winvar) abort
-  let win_with_var = get(filter(getwininfo(),
-        \ {_, win -> get(win.variables, a:winvar) ==# 1}), 0, {})
-  let target_winid = bufwinid(get(win_with_var, 'bufnr', -1))
-
-  if target_winid ># -1
-    call win_gotoid(target_winid)
-    return 1
-  else
-    return 0
-  endif
-endfunction
-
-function! s:view.move_to(dest) abort
-  let b:root = s:entry.new(a:dest)
-  call b:root.expand()
-  call s:view.render()
-endfunction
-
-function! s:view.mappings() abort
-  if s:settings.default_mappings
-    nnoremap <silent><nowait><buffer> <Cr>    :<C-u>call treevial#open()<Cr>
-    nnoremap <silent><nowait><buffer> <C-v>   :<C-u>call treevial#open({'vertical': 1})<Cr>
-    nnoremap <silent><nowait><buffer> <C-x>   :<C-u>call treevial#open({'horizontal': 1})<Cr>
-    nnoremap <silent><nowait><buffer> -       :<C-u>call treevial#up()<Cr>
-    nnoremap <silent><nowait><buffer> =       :<C-u>call treevial#down()<Cr>
-    nnoremap <silent><nowait><buffer> .       :<C-u>call treevial#initial_root()<Cr>
-    nnoremap <silent><nowait><buffer> ~       :<C-u>call treevial#home()<Cr>
-    nnoremap <silent><nowait><buffer> <Tab>   :call treevial#mark()<Cr>
-    nnoremap <silent><nowait><buffer> <S-Tab> :call treevial#mark({'shift': 1})<Cr>
-    nnoremap <silent><nowait><buffer> u       :call treevial#unmark_all()<Cr>
-    nnoremap <silent><nowait><buffer> d       :call treevial#destroy()<Cr>
-    nnoremap <silent><nowait><buffer> m       :call treevial#move()<Cr>
-    nnoremap <silent><nowait><buffer> c       :call treevial#create()<Cr>
-
-    if s:is_nvim
-      nnoremap <silent><nowait><buffer> <S-Cr> :<C-u>call treevial#open({'shift': 1})<Cr>
-    endif
-  endif
-
-  if exists('#User#TreevialMappings')
-    doautocmd User TreevialMappings
-  endif
-endfunction
-
-function! s:view.render() abort
-  let saved_view   = winsaveview()
-  let target       = bufname('%')
-  let current_lnum = 0
-  let mark_prefix  = b:root.has_marked_entries()
-        \ ? s:settings.mark_symbol . ' '
-        \ : '  '
-
-  setlocal ma noro
-
-  call treevial#util#clear_buffer()
-  call clearmatches()
-  call append(current_lnum, b:root.name)
-
-  for [entry, depth] in b:root.list()
-    let check_links   = 0
-    let current_lnum += 1
-    let indent_mult   = depth * 2
-    let indent        = repeat(' ', indent_mult)
-    let fname_len     = len(entry.filename)
-    let prefix        = len(entry.fetched_children())
-          \ ? entry.is_open
-            \ ? s:settings.collapse_symbol . ' '
-            \ : s:settings.expand_symbol . ' '
-          \ : mark_prefix
-    let line          = indent . prefix . entry.name
-
-    call append(current_lnum, line)
-    call treevial#util#each_view({-> matchaddpos(
-          \ 'TreevialIndicator', [[current_lnum + 1, indent_mult + 1]])})
-
-    for link in entry.symlinks
-      if link >? 0
-        let check_links = 1
-        break
-      endif
-    endfor
-
-    if check_links
-      let parts            = split(substitute(entry.name, '\/\+$', '', ''), '/')
-      let column           = len(line)
-      let initial_offset   = entry.is_dir
-      let positions        = []
-      let broken_positions = []
-
-      for idx in reverse(range(0, len(parts) - 1))
-        let symlink_status = get(entry.symlinks, idx)
-        if symlink_status
-          let part        = get(parts, idx, '')
-          let part_len    = len(part)
-          let column     -= part_len + initial_offset
-          let add_target  = symlink_status ==# 2 ? broken_positions : positions
-
-          call add(add_target, [current_lnum + 1, column + 1, part_len])
-
-          let column         -= 1
-          let initial_offset  = 0
-        endif
-
-        let pos_len        = len(positions)
-        let broken_pos_len = len(broken_positions)
-
-        if idx ==# 0 && pos_len >? 0 || pos_len ==# 8
-          call treevial#util#each_view({-> matchaddpos(
-                \ 'TreevialSymlink', positions)})
-          let positions = []
-        endif
-
-        if idx ==# 0 && broken_pos_len >? 0 || broken_pos_len ==# 8
-          call treevial#util#each_view({-> matchaddpos(
-                \ 'TreevialBrokenSymlink', broken_positions)})
-          let broken_positions = []
-        endif
-      endfor
-    endif
-
-    if entry.is_exe
-      call treevial#util#each_view({-> matchaddpos(
-            \ 'TreevialExecutable',
-            \ [[current_lnum + 1, len(line) - fname_len + 1, fname_len]])})
-    endif
-
-    if entry.is_marked
-      call treevial#util#each_view({-> matchaddpos(
-            \ 'TreevialIndicatorSelected', [[current_lnum + 1, indent_mult + 1]])})
-    elseif entry.has_marked_entries()
-      call treevial#util#each_view({-> matchaddpos(
-            \ 'TreevialIndicatorPartial', [[current_lnum + 1, indent_mult + 1]])})
-    endif
-  endfor
-
-  call treevial#util#clear_trailing_empty_lines()
-  call treevial#util#winrestview(saved_view)
-
-  setlocal noma ro nomod
-  mode
-endfunction
-" }}}
-
-" {{{ s:entry model + helpers
-function! s:entry.new(path, ...) abort
-  let is_dir   = isdirectory(a:path)
-  let root     = get(a:, 1, fnamemodify(a:path, ':p:h:h'))
-  let path     = fnamemodify(a:path, ':p')
-  let resolved = resolve(a:path)
-  let modified = getftime(resolved)
-  let is_ln    = a:path !=? resolved
-
-  return extend(copy(s:entry), {
-        \ 'name': substitute(path, root, '', '')[1:],
-        \ 'filename': fnamemodify(a:path, ':t'),
-        \ 'modified': modified,
-        \ 'path': path,
-        \ 'is_symlink': is_ln ? (modified ==# -1 ? 2 : 1) : 0,
-        \ 'is_dir': is_dir,
-        \ 'is_exe': executable(path),
-        \ 'is_open': 0,
-        \ 'is_marked': 0,
-        \ 'new': 0,
-        \ 'symlinks': []
-        \ })
-endfunction
-
-function! s:entry.merge(other) abort dict
-  return extend(self, filter(copy(a:other), {_, v -> type(v) !=# s:fn_type}))
-endfunction
-
-function! s:entry.open(...) abort dict
-  let options        = get(a:, 1, {})
-  let spl_hor        = get(options, 'horizontal')
-  let spl_vert       = get(options, 'vertical')
-  let escaped_path   = fnameescape(self.path)
-  let command        = spl_vert ? 'vsplit' : spl_hor ? 'split' : 'edit'
-  let target_buffers = (spl_hor || spl_vert) ? treevial#util#opened_by_treevial(command) : []
-  let target_buffer  = get(filter(copy(target_buffers),
-        \ {_, buf -> buf.variables.treevial_data.index ==# v:count1}), 0, {})
-  let target_winid   = bufwinid(get(target_buffer, 'bufnr', -1))
-
-  if target_winid ># -1
-    call win_gotoid(target_winid)
-    exe 'edit' escaped_path
-  else
-    if v:count1
-      let align_after = get(filter(
-            \ copy(target_buffers),
-            \ {_, buf -> buf.variables.treevial_data.index <# v:count1}),
-            \ -1, {})
-      let align_winid = bufwinid(get(align_after, 'bufnr', -1))
-
-      if align_winid ># -1
-        call win_gotoid(align_winid)
-      endif
-    endif
-
-    exe command escaped_path
-
-    call setwinvar(winnr(), 'treevial_data', {'command': command, 'index': v:count1})
-  endif
-endfunction
-
-function! s:entry.toggle(...) abort dict
-  let options = get(a:, 1, {})
-
-  return self.is_open ? self.collapse(options) : self.expand(options)
-endfunction
-
-function s:entry.mark(...) abort dict
-  return self.merge({'is_marked': get(a:, 1, !self.is_marked)})
-endfunction
-
-function! s:entry.mark_children() abort dict
-  for child_entry in self.fetched_children()
-    call child_entry.merge({'is_marked': self.is_marked}).mark_children()
-  endfor
-
-  return self
-endfunction
-
-function! s:entry.mark_parents() abort dict
-  let parent = self.parent()
-
-  if treevial#util#is_entry(parent)
-    let unmarked_count = len(filter(
-          \ copy(parent.fetched_children()),
-          \ '!v:val.is_marked'))
-
-    call parent.merge({'is_marked': unmarked_count ==# 0})
-    call parent.mark_parents()
-  endif
-
-  return self
-endfunction
-
-function! s:entry.collapse(...) abort dict
-  let options   = get(a:, 1, {})
-  let recursive = get(options, 'shift')
-
-  call self.merge({'is_open': 0})
-
-  if recursive
-    for child_entry in self.fetched_children()
-      call child_entry.collapse(options)
-    endfor
-  endif
-
-  return self
-endfunction
-
-function! s:entry.expand(...) abort dict
-  if !has_key(self, '_expanded')
-    for child_entry in self.children()
-      let result_entry    = child_entry
-      let symlinks        = [result_entry.is_symlink]
-      let original_parent = result_entry.parent()
-
-      while len(result_entry.children()) ==# 1
-        let result_entry = result_entry.children()[0]
-        call add(symlinks, result_entry.is_symlink)
-      endwhile
-
-      if child_entry.path !=# result_entry.path
-        call child_entry
-              \.merge(result_entry)
-              \.merge({
-              \ 'name': substitute(result_entry.path, self.path, '', ''),
-              \ '_parent': original_parent,
-              \ '_children': result_entry.fetched_children()})
-      endif
-      call child_entry.merge({'symlinks': symlinks})
-    endfor
-  endif
-
-  call self.merge({'is_open': self.is_dir, '_expanded': 1})
-  return self
-endfunction
-
-function! s:entry.children() abort dict
-  if self.is_dir && !has_key(self, '_children')
-    let root     = treevial#util#strip_trailing_slash(self.path)
-    let children = sort(sort(map(filter(
-        \ glob(root . '/*',  0, 1, 1) + glob(root . '/.*', 0, 1, 1),
-        \ {_,  p  -> p !~# '/\.\.\?$'}),
-        \ {_,  p  -> s:entry.new(p, root)}),
-        \ {x1, x2 -> treevial#util#compare_filename(x1, x2)}),
-        \ {x1, x2 -> x2.is_dir - x1.is_dir})
-
-    call extend(self, {'_children': map(
-          \ children,
-          \ {_, entry -> entry.merge({
-          \   '_parent': self,
-          \   'is_marked': self.is_marked
-          \ })
-          \ })})
-  endif
-
-  return self.fetched_children()
-endfunction
-
-function! s:entry.parent() abort dict
-  return get(self, '_parent')
-endfunction
-
-function! s:entry.fetched_children() abort dict
-  return get(self, '_children', [])
-endfunction
-
-function! s:entry.list(...) abort dict
-  let depth  = get(a:, 1, 0)
-  let result = []
-
-  for entry in self.children()
-    call add(result, [entry, depth])
-    if entry.is_open
-      call extend(result, entry.list(depth + 1))
-    endif
-  endfor
-
-  return result
-endfunction
-
-function! s:entry.sync() abort dict
-  return self
-        \.merge(s:entry.new(treevial#util#strip_trailing_slash(self.path))
-        \.synchronize_with(self))
-endfunction
-
-function! s:entry.synchronize_with(previous) abort dict
-  let new_entries         = self.expand().children()
-  let old_entries_by_path = {}
-
-  for old_entry in a:previous.fetched_children()
-    let old_entries_by_path[old_entry.path] = old_entry
-  endfor
-
-  for new_entry in new_entries
-    let old_entry = get(old_entries_by_path, new_entry.path)
-    if treevial#util#is_entry(old_entry)
-      if new_entry.modified ==# old_entry.modified
-        for old_entry_child in old_entry.fetched_children()
-          call old_entry_child.merge({'_parent': new_entry})
-        endfor
-        call new_entry.merge(old_entry)
-      elseif new_entry.is_dir && old_entry.is_dir && old_entry.is_open
-        call new_entry.synchronize_with(old_entry)
-      endif
-      call new_entry.merge({'_parent': self})
-    endif
-  endfor
-
-  return self
-endfunction
-
-function! s:entry.list_actionable() abort dict
-  let marked = []
-
-  for child_entry in self.fetched_children()
-    if child_entry.is_marked
-      call add(marked, child_entry)
-    else
-      call extend(marked, child_entry.list_actionable())
-    endif
-  endfor
-
-  return marked
-endfunction
-
-function! s:entry.has_marked_entries() abort dict
-  for child_entry in self.fetched_children()
-    if child_entry.is_marked || child_entry.has_marked_entries()
-      return 1
-    endif
-  endfor
-
-  return 0
-endfunction
-" }}}
-
-" {{{ IO helpers
-function! s:io.handle_move_multiple_entries(entries) abort
-  let entries              = copy(a:entries)
-  let entry_filenames      = uniq(sort(map(copy(entries), 'v:val.filename')))
-  let entry_filename_table = treevial#util#to_dict(map(copy(entry_filenames), '[v:val, []]'))
-  let illegal_moves        = []
-  let dest_path            = expand(
-        \ treevial#util#strip_trailing_slash(input('directory: ', b:root.path, 'dir')))
-
-  mode
-
-  if filereadable(dest_path)
-    call treevial#util#confirm(dest_path . ' is a file, please choose a directory')
-    return s:io.handle_move_multiple_entries(entries)
-  elseif empty(dest_path)
-    return
-  endif
-
-  for entry in entries
-    let errors = s:io.validate_move(entry.path, dest_path . '/' . entry.filename)
-
-    call add(entry_filename_table[entry.filename], entry)
-
-    if errors.overwrite_parent || errors.move_into_self
-      call add(illegal_moves, entry)
-    endif
-  endfor
-
-  call filter(entry_filename_table, 'len(v:val) >? 1')
-
-  if !empty(illegal_moves)
-    let one = len(illegal_moves) ==# 1
-    let choice = treevial#util#confirm({
-          \ 'entries': illegal_moves,
-          \ 'message': 'can not be moved because '
-          \          . (one ? 'its' : 'their')
-          \          . ' parent directory would be overwritten,'
-          \          . ' or ' . (one ? 'it' : 'they')
-          \          . ' would overwrite ' . (one ? 'itself' : 'themselves')
-          \          . ', what would you like to do?',
-          \ 'choices': "&Cancel\n&Unmark"
-          \ })
-
-    if choice ==# 2
-      for illegal in illegal_moves
-        call illegal.mark(0)
-        call illegal.mark_children()
-      endfor
-
-      call filter(entries, 'v:val.is_marked')
-      call s:view.render()
-    endif
-    return
-  endif
-
-  if !empty(entry_filename_table)
-    let choice = treevial#util#confirm({
-          \ 'entries': items(entry_filename_table),
-          \ 'message': 'unable to copy multiple files with the same name,'
-          \          . ' what would you like to do?',
-          \ 'choices': "&Cancel\n&Unmark duplicates"
-          \ })
-
-    if choice ==# 2
-      for [_, entries] in items(entry_filename_table)
-        for entry in entries[1:]
-          call entry.mark()
-          call entry.mark_children()
-        endfor
-      endfor
-
-      call filter(entries, 'v:val.is_marked')
-      call s:view.render()
-    else
-      return
-    endif
-  endif
-
-  if !isdirectory(dest_path) && !s:io.mkdirp(dest_path)
-    return
-  endif
-
-  let dest_entry      = s:entry.new(dest_path)
-  let dest_filenames  = map(dest_entry.children(), 'tolower(v:val.filename)')
-  let would_overwrite = filter(
-        \ copy(entries),
-        \ {_, entry -> index(dest_filenames, tolower(entry.filename)) >? -1})
-
-  mode
-
-  if !empty(would_overwrite)
-    let choice = treevial#util#confirm({
-          \ 'entries': would_overwrite,
-          \ 'message': 'will overwrite a file or directory in "' . dest_path . '"',
-          \ 'choices': "&Cancel\n&Overwrite\n&Unmark"
-          \ })
-
-    if choice ==# 3
-      for entry in would_overwrite
-        entry.mark(0)
-        entry.mark_children()
-      endfor
-
-      call filter(entries, 'v:val.is_marked')
-    elseif choice !=? 2
-      return
-    endif
-  endif
-
-  for marked in entries
-    call s:io.move(marked.path, dest_path . '/' . marked.filename)
-  endfor
-
-  call b:root.sync()
-  call s:view.render()
-endfunction
-
-function! s:io.handle_move_single_entry(entry) abort
-  let dest_path   = expand(substitute(input('destination: ', a:entry.path, 'dir'), '\/$', '', ''))
-  let dest_parent = fnamemodify(dest_path, ':h')
-  let entry_path  = substitute(a:entry.path, '\/$', '', '')
-  let errors      = s:io.validate_move(entry_path, dest_path)
-
-  mode
-
-  if errors.noop
-    return
-  elseif errors.overwrite_parent
-    return treevial#util#confirm('unable to overwrite parent directory')
-  elseif errors.move_into_self
-    return treevial#util#confirm('files and directories can not be moved into themselves')
-  elseif errors.dest_exists
-    let choice = treevial#util#confirm({
-          \ 'message': join(['destination "' . dest_path . '" already exists,',
-          \                  "what would you like to do?"], "\n\n"),
-          \ 'choices': "&Cancel\n&Overwrite"
-          \ })
-
-    if choice !=? 2
-      return
-    endif
-  elseif !isdirectory(dest_parent)
-    if !s:io.mkdirp(dest_parent)
-      return
-    endif
-  endif
-
-  call s:io.move(entry_path, dest_path)
-  call b:root.sync()
-  call s:view.render()
-endfunction
-
-function! s:io.move(from, to) abort
-  if rename(a:from, a:to) !=? 0
-    return treevial#util#confirm({
-          \ 'entries': [['rename', [{'path': a:from}]],
-          \             ['to',     [{'path': a:to}]]],
-          \ 'message': 'failed, press <ENTER> to continue'})
-  endif
-endfunction
-
-function! s:io.mkdirp(path) abort
-  try
-    call mkdir(a:path, 'p')
-  finally
-    if isdirectory(a:path)
-      return 1
-    else
-      call treevial#util#confirm('failed to create "' . a:path . '"')
-      return 0
-    endif
-  endtry
-endfunction
-
-function s:io.mkfile(destination) abort
-  let dest_dir = fnamemodify(a:destination, ':h')
-  if isdirectory(dest_dir) || s:io.mkdirp(dest_dir)
-    try
-      if writefile([], a:destination, 'b') !=? 0
-        throw 1
-      endif
-      return 1
-    catch
-      call treevial#util#confirm('failed to create file: ' . a:destination)
-      return 0
-    endtry
-  else
-    return 0
-  endif
-endfunction
-
-function s:io.validate_move(from, to) abort
-  let from = substitute(a:from, '\/$', '', '')
-  let to   = substitute(a:to, '\/$', '', '')
-
-  return {
-        \ 'overwrite_parent': from =~? '^' . to && isdirectory(to),
-        \ 'move_into_self': to =~? '^' . from . '/',
-        \ 'noop': to ==? from || empty(to) || empty(from),
-        \ 'dest_exists': isdirectory(to) || filereadable(to)
-        \ }
-endfunction
-
-function! s:io.delete_all(entries) abort
-  let failed = []
-
-  for entry in a:entries
-    try
-      if delete(entry.path, entry.is_dir ? 'rf' : '') ==# -1
-        throw 1
-      endif
-    catch
-      call add(failed, entry)
-    endtry
-  endfor
-
-  if len(failed) >? 0
-    call treevial#util#confirm({
-          \ 'entries': failed
-          \ 'message': 'could not be removed and will remain marked!',
-          \ 'choices': "&Ok"
-          \ })
-    return 0
-  else
-    return 1
-  endif
+  call treevial#view#move_to($HOME)
 endfunction
 " }}}
 
@@ -842,7 +170,7 @@ endfunction
 function! s:command_handler(...)
   let cwd = get(a:, 1, getcwd())
 
-  call s:view.buffer({'cwd': cwd})
+  call treevial#view#buffer({'cwd': cwd})
 endfunction
 
 if !exists(':Treevial')
