@@ -9,13 +9,8 @@ function! treevial#view#buffer(...) abort
   let options    = get(a:, 1, {})
   let root       = treevial#entry#new(get(options, 'cwd', getcwd()))
   let s:init_cwd = treevial#view#init_cwd()
-  let bufname    = substitute(
-        \ root.path,
-        \ fnamemodify(s:init_cwd, ':h') . '/',
-        \ '',
-        \ '')
 
-  exe 'edit' bufname
+  exe 'edit' root.path . '/'
   setfiletype treevial
 
   let b:root = root
@@ -93,7 +88,6 @@ endfunction
 
 function! treevial#view#render() abort
   let saved_view   = winsaveview()
-  let target       = bufname('%')
   let current_lnum = 0
   let mark_prefix  = b:root.has_marked_entries()
         \ ? treevial#settings#get('mark_symbol') . ' '
