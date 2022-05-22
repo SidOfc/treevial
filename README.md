@@ -1,24 +1,11 @@
 # Treevial
 
-:warning::construction: Treevial is under development! :construction::warning:
+:warning::warning: Treevial is under no longer maintained! :warning::warning:
+
+> Neovim users can take a look at [Carbon.nvim](https://github.com/sidofc/carbon.nvim) - A pure lua file explorer written for Neovim.
 
 Treevial is yet another file explorer for (n)vim. With this plugin enabled,
 Netrw will be disabled and Treevial will launch instead.
-
-## Motivation
-
-There really is no proper motivation aside from that infuriating feeling
-**every. single. time.** I try to close (n)vim and I see that dreaded nonsense
-warning about Netrw having left its buffer in some illegal state again.
-
-Unfortunately Netrw is just too broken. I tried using it, [read](https://shapeshed.com/vim-netrw/)
-up on why you don't need a directory plugin, tried to throw
-the best known netrw-enhancement [vim-vinegar](https://github.com/tpope/vim-vinegar)
-at it, at some point I cried in a corner for a while, then decided
-to try it for myself.
-
-I am actually thankful for this experience though. Because of the frustration, true
-motivation was born and put to use for a (hopefully) more positive experience.
 
 ## Why Treevial?
 
